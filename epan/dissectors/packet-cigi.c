@@ -2329,6 +2329,7 @@ static expert_field ei_cigi_invalid_len = EI_INIT;
 
 /* CIGI4 Packet ID */
 static int hf_cigi4_packet_id = -1;
+static int hf_cigi4_packet_size = -1;
 #define CIGI4_PACKET_ID_IG_CONTROL                                   0x00
 #define CIGI4_PACKET_ID_ENTITY_POSITION                              0x01
 #define CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL             0x02
@@ -2388,7 +2389,7 @@ static int hf_cigi4_packet_id = -1;
 #define CIGI4_PACKET_ID_IMAGE_GENERATOR_MESSAGE                    0x0FF0
 
 
-cigi4_packet_id_vals[] = {
+static const value_string cigi4_packet_id_vals[] = {
     {CIGI4_PACKET_ID_IG_CONTROL, "IG Control"},
     {CIGI4_PACKET_ID_ENTITY_POSITION, "Entity Control"},/**/
     {CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL, "Conformal Clamped Entity Control"},
@@ -2664,8 +2665,8 @@ cigi_get_fixed_point(tvbuff_t *tvb, int offset, const guint encoding)
 static gboolean
 packet_is_cigi(tvbuff_t *tvb)
 {
-    guint8 packet_id;
-    guint8 packet_size;
+    guint16 packet_id;
+    guint16 packet_size;
     guint8 cigi_version_local;
     guint8 ig_mode;
 
@@ -2802,9 +2803,19 @@ packet_is_cigi(tvbuff_t *tvb)
                 return FALSE;
             }
 
-            /* CIGI 4 requires that the first packet is always the IG Control or SOF */
-            packet_id = tvb_get_guint8(tvb, 2);     //packet_id is not at the same location
-            packet_size = tvb_get_guint16(tvb, 0);  //packet_size is not at the same location
+            /* CIGI 4 requires that the first packet is always the IG Control or SOF */    
+
+            //PacketSize If the parser detects a zero in the "leftmost" byte, then the message is in Big Endian byte
+            byte_swap = tvb_get_ntohs(tvb, 0);
+            if ((byte_swap & 0xFF00) == 0) {
+                packet_size = tvb_get_guint16(tvb, 0, ENC_BIG_ENDIAN);
+                packet_id = tvb_get_guint16(tvb, 2, ENC_BIG_ENDIAN);     //packet_id is not at the same location
+            }
+            else {
+                packet_size = tvb_get_guint16(tvb, 0, ENC_LITTLE_ENDIAN);
+                packet_id = tvb_get_guint16(tvb, 2, ENC_LITTLE_ENDIAN);
+            }
+
             switch (packet_id) {
             case CIGI4_PACKET_ID_IG_CONTROL:
                 if (packet_size != CIGI4_PACKET_SIZE_IG_CONTROL) {
@@ -2839,7 +2850,7 @@ packet_is_cigi(tvbuff_t *tvb)
             break;
 
             /* CIGI 4 has the byte swap is done using PacketSize "leftmost" byte*/
-            byte_swap = tvb_get_guint8(tvb, 2);
+            //byte_swap = tvb_get_guint16(tvb, 2, );
     }
 
     /* If we made it here, then this is probably CIGI */
@@ -2880,7 +2891,7 @@ static void
 dissect_cigi_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
     /* Set up structures needed to add the protocol subtree and manage it */
-    guint8 packet_id = 0;
+    guint16 packet_id = 0;
 
     proto_item *ti, *hidden_item;
     proto_tree *cigi_tree;
@@ -2888,8 +2899,13 @@ dissect_cigi_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     const char* src_str;
     const char* dest_str;
 
-    packet_id = tvb_get_guint8(tvb, 0);
 
+    if ((tvb_get_ntohs(tvb, 0) & 0xFF00) == 0) {
+        packet_id = tvb_get_guint16(tvb, 2, ENC_BIG_ENDIAN);     //packet_id is not at the same location
+    }
+    else {
+        packet_id = tvb_get_guint16(tvb, 2, ENC_LITTLE_ENDIAN);
+    }
 
     /* Make entries in Protocol column and Info column on summary display */
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "CIGI");
@@ -2899,6 +2915,9 @@ dissect_cigi_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
      * place the IG Control and SOF packet id's in this comparison. */
     if ( ( packet_id == CIGI2_PACKET_ID_IG_CONTROL || packet_id == CIGI2_PACKET_ID_START_OF_FRAME || packet_id == CIGI3_PACKET_ID_IG_CONTROL || packet_id == CIGI3_PACKET_ID_START_OF_FRAME ) && global_cigi_version == CIGI_VERSION_FROM_PACKET ) {
         cigi_version = tvb_get_guint8(tvb, 2);
+    }
+    else if ((packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME) && global_cigi_version == CIGI_VERSION_FROM_PACKET) {
+        cigi_version = tvb_get_guint8(tvb, 4);
     }
 
     /* Format the Info String */
@@ -3608,8 +3627,6 @@ cigi3_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi3_3_add_symbol_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_SHORT_SYMBOL_CONTROL && cigi_minor_version == 3 ) {
             offset = cigi3_3_add_short_symbol_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
-            offset = cigi4_add_start_of_frame(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_START_OF_FRAME && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
             offset = cigi3_2_add_start_of_frame(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_START_OF_FRAME ) {
@@ -6683,7 +6700,7 @@ cigi3_add_image_generator_message(tvbuff_t *tvb, proto_tree *tree, gint offset)
 /* Create the tree for CIGI 4 */
 static void
 cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
-{ nico
+{ 
     gint offset = 0;
     gint length = 0;
     gint init_offset = 0;
@@ -6704,9 +6721,20 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
      * a new packet to dissect. */
     while ( offset < length ) {
 
-        packet_id = tvb_get_guint16(tvb, offset + 2);
-        packet_size = tvb_get_guint16(tvb, offset);
-        byte_swap = tvb_get_ntohs(tvb, offset + 2);
+        byte_swap = tvb_get_ntohs(tvb, offset);        
+        /* If we have the SOF or IG Control packet set the byte order */
+        //if ((packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME) && global_cigi_byte_order == CIGI_BYTE_ORDER_FROM_PACKET) {
+            //If the parser detects a zero in the "leftmost" byte, then the message is in Big Endian byte
+            if ((byte_swap & 0xFF00) == 0) {
+                cigi_byte_order = ENC_BIG_ENDIAN;
+            }
+            else {
+                cigi_byte_order = ENC_LITTLE_ENDIAN;
+            }
+        //}
+        packet_id = tvb_get_guint16(tvb, offset + 2, cigi_byte_order);
+        packet_size = tvb_get_guint16(tvb, offset, cigi_byte_order);
+        
 
         /* If we have the start of frame or IG Control packet set the version */
         if ( ( packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) && global_cigi_version == CIGI_VERSION_FROM_PACKET ) {
@@ -6717,16 +6745,6 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
                cigi_minor_version = tvb_get_guint8(tvb, 7) >> 4;
             } else {
                cigi_minor_version = 0;
-            }
-        }
-
-        /* If we have the SOF or IG Control packet set the byte order */
-        if ( ( packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) && global_cigi_byte_order == CIGI_BYTE_ORDER_FROM_PACKET ) {
-            //If the parser detects a zero in the "leftmost" byte, then the message is in Big Endian byte
-            if (( byte_swap & 0xFF00 ) == 0 ) {
-                cigi_byte_order = ENC_BIG_ENDIAN;
-            } else {
-                cigi_byte_order = ENC_LITTLE_ENDIAN;
             }
         }
 
@@ -6830,10 +6848,7 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_SURFACE_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_3_symbol_surface_definition;
             packet_length = CIGI4_PACKET_SIZE_SYMBOL_SURFACE_DEFINITION;
-        } else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
-            hf_cigi4_packet = hf_cigi4_start_of_frame;
-            packet_length = CIGI4_2_PACKET_SIZE_START_OF_FRAME;
-        }*/ else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
+        } */ else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
             hf_cigi4_packet = hf_cigi4_start_of_frame;
             packet_length = CIGI4_PACKET_SIZE_START_OF_FRAME;
         } /*else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
@@ -6905,7 +6920,7 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         }*/
         tipacket = proto_tree_add_none_format(cigi_tree, hf_cigi4_packet, tvb, offset, packet_length,
                                               "%s (%i bytes)",
-                                              val_to_str_ext_const(packet_id, &cigi3_packet_id_vals_ext, "Unknown"),
+                                              val_to_str_ext_const(packet_id, &cigi4_packet_id_vals_ext, "Unknown"),
                                               packet_length);
 
         cigi_packet_tree = proto_item_add_subtree(tipacket, ett_cigi);
@@ -6913,11 +6928,11 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         /* In all CIGI versions the first byte of a packet is the packet ID.
          * The second byte is the size of the packet (in bytes). */
         init_offset = offset;
-        proto_tree_add_item(cigi_packet_tree, hf_cigi4_packet_id, tvb, offset, 1, cigi_byte_order);
-        offset++;
+        proto_tree_add_item(cigi_packet_tree, hf_cigi4_packet_size, tvb, offset, 2, cigi_byte_order);
+        offset += 2;
 
-        proto_tree_add_item(cigi_packet_tree, hf_cigi_packet_size, tvb, offset, 1, cigi_byte_order);
-        offset++;
+        proto_tree_add_item(cigi_packet_tree, hf_cigi4_packet_id, tvb, offset, 2, cigi_byte_order);
+        offset += 2;
 
         if ( packet_id == CIGI4_PACKET_ID_IG_CONTROL ) {
             offset = cigi4_add_ig_control(tvb, cigi_packet_tree, offset);
@@ -6989,7 +7004,8 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_symbol_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_SHORT_SYMBOL_CONTROL && cigi_minor_version == 3 ) {
             offset = cigi4_add_short_symbol_control(tvb, cigi_packet_tree, offset);
-        } */else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
+        } */
+        else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
             offset = cigi4_add_start_of_frame(tvb, cigi_packet_tree, offset);
         }/* else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
             offset = cigi3_add_hat_hot_response(tvb, cigi_packet_tree, offset);
@@ -7082,21 +7098,13 @@ cigi4_add_start_of_frame(tvbuff_t *tvb, proto_tree *tree, gint offset)
     offset++;
 
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_db_number, tvb, offset, 1, cigi_byte_order);
-    offset += 2; //offset++;
-
-    //proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_status, tvb, offset, 1, cigi_byte_order);
-    //offset++;
+    offset++;
 
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_mode, tvb, offset, 1, cigi_byte_order);
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_timestamp_valid, tvb, offset, 1, cigi_byte_order);
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_earth_reference_model, tvb, offset, 1, cigi_byte_order);
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_minor_version, tvb, offset, 1, cigi_byte_order);
-    offset++;
-
-    /* Get the Byte Swap in Big-Endian so that we can display whether the value
-     * is big-endian or little-endian to the user */
-    //proto_tree_add_item(tree, hf_cigi4_byte_swap, tvb, offset, 2, ENC_BIG_ENDIAN);
-    //offset += 2;
+    offset += 2;
 
     proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_frame_number, tvb, offset, 4, cigi_byte_order);
     offset += 4;
@@ -7226,13 +7234,19 @@ proto_register_cigi(void)
             { "Byte Swap", "cigi.byte_swap",
                 FT_UINT16, BASE_HEX, VALS(cigi3_byte_swap_vals), 0x0,
                 "Used to determine whether the incoming data should be byte-swapped", HFILL }
-        },,
+        },
 
         /* CIGI4 */
         { &hf_cigi4_packet_id,
             { "Packet ID", "cigi.packet_id",
-                FT_UINT8, BASE_DEC|BASE_EXT_STRING, &cigi4_packet_id_vals_ext, 0x0,
+                FT_UINT16, BASE_DEC|BASE_EXT_STRING, &cigi4_packet_id_vals_ext, 0x0,
                 "Identifies the packet's ID", HFILL }
+        },
+
+        { &hf_cigi4_packet_size,
+            { "Packet Size", "cigi.packet_size",
+                FT_UINT16, BASE_DEC | BASE_EXT_STRING, &cigi4_packet_id_vals_ext, 0x0,
+                "Identifies the number of bytes in this type of packet", HFILL }
         },
 
         /* CIGI2 IG Control */
@@ -11627,6 +11641,73 @@ proto_register_cigi(void)
             { "Last Host Frame Number", "cigi.sof.last_host_frame_number",
                 FT_UINT32, BASE_DEC, NULL, 0x0,
                 "Contains the value of the Host Frame parameter in the last IG Control packet received from the Host.", HFILL }
+        },
+
+        /* CIGI4 Start of Frame */
+        { &hf_cigi4_start_of_frame,
+            { "Start of Frame", "cigi.sof",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Start of Frame Packet", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_db_number,
+            { "Database Number", "cigi.sof.db_number",
+                FT_INT8, BASE_DEC, NULL, 0x0,
+                "Indicates to the Host which database is currently in use and if that database is being loaded into primary memory", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_ig_status,
+            { "IG Status Code", "cigi.sof.ig_status",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Indicates the error status of the IG", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_minor_version,
+            { "Minor Version", "cigi.sof.minor_version",
+                FT_UINT8, BASE_DEC, NULL, 0xF0,
+                "Indicates the minor version of the CIGI interface", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_ig_mode,
+            { "IG Mode", "cigi.sof.ig_mode",
+                FT_UINT8, BASE_DEC, VALS(cigi3_2_start_of_frame_ig_mode_vals), 0x03,
+                "Indicates the current IG mode", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_timestamp_valid,
+            { "Timestamp Valid", "cigi.sof.timestamp_valid",
+                FT_BOOLEAN, 8, TFS(&tfs_valid_invalid), 0x04,
+                "Indicates whether the Timestamp parameter contains a valid value", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_earth_reference_model,
+            { "Earth Reference Model", "cigi.sof.earth_reference_model",
+                FT_BOOLEAN, 8, TFS(&cigi3_2_start_of_frame_earth_reference_model_tfs), 0x08,
+                "Indicates whether the IG is using a custom Earth Reference Model or the default WGS 84 reference ellipsoid for coordinate conversion calculations", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_ig_frame_number,
+            { "IG Frame Number", "cigi.sof.ig_frame_number",
+                FT_UINT32, BASE_DEC, NULL, 0x0,
+                "Uniquely identifies the IG data frame", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_timestamp,
+            { "Timestamp (microseconds)", "cigi.sof.timestamp",
+                FT_UINT32, BASE_DEC, NULL, 0x0,
+                "Indicates the number of 10 microsecond \"ticks\" since some initial reference time", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_last_host_frame_number,
+            { "Last Host Frame Number", "cigi.sof.last_host_frame_number",
+                FT_UINT32, BASE_DEC, NULL, 0x0,
+                "Contains the value of the Host Frame parameter in the last IG Control packet received from the Host.", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_condition_overframing,
+            { "Overframing", "cigi.sof.overframing",
+                FT_BOOLEAN, 8, TFS(&tfs_true_false), 0x01,
+                "The IG shall set this parameter to one (1) when the overframing condition is detected", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_condition_paging,
+            { "Paging", "cigi.sof.paging",
+                FT_BOOLEAN, 8, TFS(&tfs_true_false), 0x02,
+                "The IG shall set this parameter to one (1) when the paging condition is present", HFILL }
+        },
+        { &hf_cigi4_start_of_frame_condition_excessive_variable_length_data,
+            { "Excessive Variable Length Data", "cigi.sof.excessive_variable_length_data",
+                FT_BOOLEAN, 8, TFS(&tfs_true_false), 0x04,
+                "The IG shall set this parameter to one (1) when the excessive variable length data condition is detected", HFILL }
         },
 
         /* CIGI2 Height Above Terrain Response */
