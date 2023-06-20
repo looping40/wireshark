@@ -130,6 +130,17 @@ static gint cigi3_3_add_symbol_clone(tvbuff_t*, proto_tree*, gint);
 static gint cigi3_3_add_symbol_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi3_3_add_short_symbol_control(tvbuff_t*, proto_tree*, gint);
 
+
+static void cigi4_add_tree(tvbuff_t*, packet_info*, proto_tree*);
+static gint cigi4_add_ig_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_entity_position(tvbuff_t*, proto_tree*, gint);
+//static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
+//static gint cigi4_add_conformal_clamped_entity_control(tvbuff_t*, proto_tree*, gint);
+//..
+//..
+//..
+static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
+
 /* CIGI Handle */
 static dissector_handle_t cigi_handle;
 
@@ -2316,11 +2327,304 @@ static int hf_cigi3_user_defined = -1;
 static expert_field ei_cigi_invalid_len = EI_INIT;
 
 
+/* CIGI4 Packet ID */
+static int hf_cigi4_packet_id = -1;
+#define CIGI4_PACKET_ID_IG_CONTROL                                   0x00
+#define CIGI4_PACKET_ID_ENTITY_POSITION                              0x01
+#define CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL             0x02
+#define CIGI4_PACKET_ID_COMPONENT_CONTROL                            0x03
+#define CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL                      0x04
+#define CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL                     0x05
+#define CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL               0x06
+#define CIGI4_PACKET_ID_VELOCITY_CONTROL                             0x07
+#define CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL                     0x08
+#define CIGI4_PACKET_ID_ATMOSPHERE_CONTROL                           0x09
+#define CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL                 0x0A
+#define CIGI4_PACKET_ID_WEATHER_CONTROL                              0x0B
+#define CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL          0x0C
+#define CIGI4_PACKET_ID_WAVE_CONTROL                                 0x0D
+#define CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL       0x0E
+#define CIGI4_PACKET_ID_VIEW_CONTROL                                 0x0F
+#define CIGI4_PACKET_ID_SENSOR_CONTROL                               0x10
+#define CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL                       0x11
+#define CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION             0x12
+#define CIGI4_PACKET_ID_ACCELERATION_CONTROL                         0x13
+#define CIGI4_PACKET_ID_VIEW_DEFINITION                              0x14
+#define CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION       0x15
+#define CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION        0x16
+#define CIGI4_PACKET_ID_HAT_HOT_REQUEST                              0x17
+#define CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST                0x18
+#define CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST                 0x19
+#define CIGI4_PACKET_ID_POSITION_REQUEST                             0x1A
+#define CIGI4_PACKET_ID_ENVIRONMENTAL_CONDITIONS_REQUEST             0x1B
+#define CIGI4_PACKET_ID_SYMBOL_SURFACE_DEFINITION                    0x1C
+#define CIGI4_PACKET_ID_SYMBOL_TEXT_DEFINITION                       0x1D
+#define CIGI4_PACKET_ID_SYMBOL_CIRCLE_DEFINITION                     0x1E
+#define CIGI4_PACKET_ID_SYMBOL_POLYGON_DEFINITION                    0x1F
+#define CIGI4_PACKET_ID_SYMBOL_CLONE                                 0x20
+#define CIGI4_PACKET_ID_SYMBOL_CONTROL                               0x21
+#define CIGI4_PACKET_ID_SHORT_SYMBOL_CONTROL                         0x22
+#define CIGI4_PACKET_ID_SYMBOL_CIRCLE_TEXTURED_DEFINITION            0x23
+#define CIGI4_PACKET_ID_SYMBOL_POLYGON_TEXTURED_DEFINITION           0x24
+#define CIGI4_PACKET_ID_ENTITY_CONTROL                               0x25
+#define CIGI4_PACKET_ID_ANIMATION_CONTROL                            0x26
+
+#define CIGI4_PACKET_ID_START_OF_FRAME                             0xFFFF
+#define CIGI4_PACKET_ID_HAT_HOT_RESPONSE                           0x0FFF
+#define CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE                  0x0FFE
+#define CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE                     0x0FFE
+#define CIGI4_PACKET_ID_LINE_OF_SIGHT_EXTENDED_RESPONSE            0x0FFC
+#define CIGI4_PACKET_ID_SENSOR_RESPONSE                            0x0FFB
+#define CIGI4_PACKET_ID_SENSOR_EXTENDED_RESPONSE                   0x0FFA
+#define CIGI4_PACKET_ID_POSITION_RESPONSE                          0x0FF9
+#define CIGI4_PACKET_ID_WEATHER_CONDITIONS_RESPONSE                0x0FF8
+#define CIGI4_PACKET_ID_AEROSOL_CONCENTRATION_RESPONSE             0x0FF7
+#define CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_RESPONSE       0x0FF6
+#define CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE    0x0FF5
+#define CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_NOTIFICATION   0x0FF4
+#define CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_NOTIFICATION    0x0FF3
+#define CIGI4_PACKET_ID_ANIMATION_STOP_NOTIFICATION                0x0FF2
+#define CIGI4_PACKET_ID_EVENT_NOTIFICATION                         0x0FF1
+#define CIGI4_PACKET_ID_IMAGE_GENERATOR_MESSAGE                    0x0FF0
+
+
+cigi4_packet_id_vals[] = {
+    {CIGI4_PACKET_ID_IG_CONTROL, "IG Control"},
+    {CIGI4_PACKET_ID_ENTITY_POSITION, "Entity Control"},/**/
+    {CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL, "Conformal Clamped Entity Control"},
+    {CIGI4_PACKET_ID_COMPONENT_CONTROL, "Component Control"},
+    {CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL, "Short Component Control"},
+    {CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL, "Articulated Part Control"},
+    {CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL, "Short Articulated Part Control"},
+    {CIGI4_PACKET_ID_VELOCITY_CONTROL, "Velocity Control"},
+    {CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL, "Celestial Sphere Control"},
+    {CIGI4_PACKET_ID_ATMOSPHERE_CONTROL, "Atmosphere Control"},
+    {CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL, "Environmental Region Control"},
+    {CIGI4_PACKET_ID_WEATHER_CONTROL, "Weather Control"},
+    {CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL, "Maritime Surface Conditions Control"},
+    {CIGI4_PACKET_ID_WAVE_CONTROL, "Wave Control"},
+    {CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL, "Terrestrial Surface Conditions Control"},
+    {CIGI4_PACKET_ID_VIEW_CONTROL, "View Control"},
+    {CIGI4_PACKET_ID_SENSOR_CONTROL, "Sensor Control"},
+    {CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL, "Motion Tracker Control"},
+    {CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION, "Earth Reference Model Definition"},
+    {CIGI4_PACKET_ID_ACCELERATION_CONTROL, "Acceleration Definition"},
+    {CIGI4_PACKET_ID_VIEW_DEFINITION, "View Definition"},
+    {CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION, "Collision Detection Segment Definition"},
+    {CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION, "Collision Detection Volume Definition"},
+    {CIGI4_PACKET_ID_HAT_HOT_REQUEST, "HAT/HOT Request"},
+    {CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST, "Line of Sight Segment Request"},
+    {CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST, "Line of Sight Vector Request"},
+    {CIGI4_PACKET_ID_POSITION_REQUEST, "Position Request"},
+    {CIGI4_PACKET_ID_ENVIRONMENTAL_CONDITIONS_REQUEST, "Environmental Conditions Request"},
+    {CIGI4_PACKET_ID_SYMBOL_SURFACE_DEFINITION, "Symbol Surface Definition"},
+    {CIGI4_PACKET_ID_SYMBOL_TEXT_DEFINITION, "Symbol Text Definition"},
+    {CIGI4_PACKET_ID_SYMBOL_CIRCLE_DEFINITION, "Symbol Circle Definition"},
+    {CIGI4_PACKET_ID_SYMBOL_POLYGON_DEFINITION, "Symbol Polygon Definition"},
+    {CIGI4_PACKET_ID_SYMBOL_CLONE, "Symbol Clone"},
+    {CIGI4_PACKET_ID_SYMBOL_CONTROL, "Symbol Control"},
+    {CIGI4_PACKET_ID_SHORT_SYMBOL_CONTROL, "Short Symbol Control"},
+    {CIGI4_PACKET_ID_SYMBOL_CIRCLE_TEXTURED_DEFINITION, "Symbol Textured Circle Definition"},
+    {CIGI4_PACKET_ID_SYMBOL_POLYGON_TEXTURED_DEFINITION, "Symbol Textured Polygon Definition"},
+    {CIGI4_PACKET_ID_ENTITY_CONTROL, "Entity Control"},
+    {CIGI4_PACKET_ID_ANIMATION_CONTROL, "Animation Control"},
+
+    {CIGI4_PACKET_ID_START_OF_FRAME, "Start of Frame"},
+    {CIGI4_PACKET_ID_HAT_HOT_RESPONSE, "HAT/HOT Response"},
+    {CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE, "HAT/HOT Extended Response"},
+    {CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE, "Line of Sight Response"},
+    {CIGI4_PACKET_ID_LINE_OF_SIGHT_EXTENDED_RESPONSE, "Line of Sight Extended Response"},
+    {CIGI4_PACKET_ID_SENSOR_RESPONSE, "Sensor Response"},
+    {CIGI4_PACKET_ID_SENSOR_EXTENDED_RESPONSE, "Sensor Extended Response"},
+    {CIGI4_PACKET_ID_POSITION_RESPONSE, "Position Response"},
+    {CIGI4_PACKET_ID_WEATHER_CONDITIONS_RESPONSE, "Weather Conditions Response"},
+    {CIGI4_PACKET_ID_AEROSOL_CONCENTRATION_RESPONSE, "Aerosol Concentration Response"},
+    {CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_RESPONSE, "Maritime Surface Conditions Response"},
+    {CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE, "Terrestrial Surface Conditions Response"},
+    {CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_NOTIFICATION, "Collision Detection Segment Notification"},
+    {CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_NOTIFICATION, "Collision Detection Volume Notification"},
+    {CIGI4_PACKET_ID_ANIMATION_STOP_NOTIFICATION, "Animation Stop Notification"},
+    {CIGI4_PACKET_ID_EVENT_NOTIFICATION, "Event Notification"},
+    {CIGI4_PACKET_ID_IMAGE_GENERATOR_MESSAGE, "Image Generator Message"},
+    {0, NULL}
+};
+static value_string_ext cigi4_packet_id_vals_ext = VALUE_STRING_EXT_INIT(cigi4_packet_id_vals);
+
+
+/* CIGI4 IG Control */
+#define CIGI4_PACKET_SIZE_IG_CONTROL 24
+static int hf_cigi4_ig_control = -1;
+static int hf_cigi4_ig_control_db_number = -1;
+static int hf_cigi4_ig_control_ig_mode = -1;
+static int hf_cigi4_ig_control_timestamp_valid = -1;
+static int hf_cigi4_ig_control_minor_version = -1;
+static int hf_cigi4_ig_control_host_frame_number = -1;
+static int hf_cigi4_ig_control_timestamp = -1;
+static int hf_cigi4_ig_control_last_ig_frame_number = -1;
+static int hf_cigi4_ig_control_smoothing_enable = -1;
+static int hf_cigi4_ig_control_entity_substitution_enable = -1;
+
+static const value_string cigi4_ig_control_ig_mode_vals[] = {
+    {0, "Reset/Standby"},
+    {1, "Operate"},
+    {2, "Debug"},
+    {0, NULL},
+};
+
+
+/* CIGI4 Entity Position */
+#define CIGI4_PACKET_SIZE_ENTITY_POSITION 48
+static int hf_cigi4_entity_position = -1;
+static int hf_cigi4_entity_position_entity_id = -1;
+static int hf_cigi4_entity_position_attach_state = -1;
+static int hf_cigi4_entity_position_ground_ocean_clamp = -1;
+/*static int hf_cigi4_entity_position_animation_direction = -1;
+static int hf_cigi4_entity_position_animation_loop_mode = -1;
+static int hf_cigi4_entity_position_animation_state = -1;
+static int hf_cigi4_entity_position_alpha = -1;
+static int hf_cigi4_entity_position_entity_type = -1;*/
+static int hf_cigi4_entity_position_parent_id = -1;
+static int hf_cigi4_entity_position_roll = -1;
+static int hf_cigi4_entity_position_pitch = -1;
+static int hf_cigi4_entity_position_yaw = -1;
+static int hf_cigi4_entity_position_lat_xoff = -1;
+static int hf_cigi4_entity_position_lon_yoff = -1;
+static int hf_cigi4_entity_position_alt_zoff = -1;
+
+#define CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_POSITION         32
+static int hf_cigi4_conformal_clamped_entity_position = -1;
+static int hf_cigi4_conformal_clamped_entity_position_entity_id = -1;
+static int hf_cigi4_conformal_clamped_entity_position_yaw = -1;
+static int hf_cigi4_conformal_clamped_entity_position_lat = -1;
+static int hf_cigi4_conformal_clamped_entity_position_lon = -1;
+
+#define CIGI4_PACKET_SIZE_COMPONENT_CONTROL                         40
+static int hf_cigi4_component_control = -1;
+static int hf_cigi4_component_control_component_id = -1;
+static int hf_cigi4_component_control_instance_id = -1;
+static int hf_cigi4_component_control_component_class = -1;
+static int hf_cigi4_component_control_component_state = -1;
+static int hf_cigi4_component_control_data_1 = -1;
+static int hf_cigi4_component_control_data_2 = -1;
+static int hf_cigi4_component_control_data_3 = -1;
+static int hf_cigi4_component_control_data_4 = -1;
+static int hf_cigi4_component_control_data_5 = -1;
+static int hf_cigi4_component_control_data_6 = -1;
+
+#define CIGI4_PACKET_SIZE_SHORT_COMPONENT_CONTROL                   24
+static int hf_cigi4_short_component_control = -1;
+static int hf_cigi4_short_component_control_component_id = -1;
+static int hf_cigi4_short_component_control_instance_id = -1;
+static int hf_cigi4_short_component_control_component_class = -1;
+static int hf_cigi4_short_component_control_component_state = -1;
+static int hf_cigi4_short_component_control_data_1 = -1;
+static int hf_cigi4_short_component_control_data_2 = -1;
+
+#define CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL                  32
+#define CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL            24
+#define CIGI4_PACKET_SIZE_VELOCITY_CONTROL                          32
+#define CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL                  24
+#define CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL                        32
+#define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL              48
+#define CIGI4_PACKET_SIZE_WEATHER_CONTROL                           72
+#define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL       24
+#define CIGI4_PACKET_SIZE_WAVE_CONTROL                              32
+#define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL    16
+#define CIGI4_PACKET_SIZE_VIEW_CONTROL                              40
+#define CIGI4_PACKET_SIZE_SENSOR_CONTROL                            32
+#define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
+#define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
+#define CIGI4_PACKET_SIZE_ACCELERATION_CONTROL                      32
+#define CIGI4_PACKET_SIZE_VIEW_DEFINITION                           40
+#define CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION    40
+#define CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION     48
+#define CIGI4_PACKET_SIZE_HAT_HOT_REQUEST                           40
+#define CIGI4_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST             72
+#define CIGI4_PACKET_SIZE_LINE_OF_SIGHT_VECTOR_REQUEST              64
+#define CIGI4_PACKET_SIZE_POSITION_REQUEST                           8
+#define CIGI4_PACKET_SIZE_ENVIRONMENTAL_CONDITIONS_REQUEST          32
+#define CIGI4_PACKET_SIZE_SYMBOL_SURFACE_DEFINITION                 64
+#define CIGI4_PACKET_SIZE_SYMBOL_TEXT_DEFINITION                    12 + text_length
+#define CIGI4_PACKET_SIZE_SYMBOL_CIRCLE_DEFINITION                  24 + (24 × n)
+#define CIGI4_PACKET_SIZE_SYMBOL_POLYGON_DEFINITION                 24 + (8 × n)
+#define CIGI4_PACKET_SIZE_SYMBOL_CLONE                              16
+#define CIGI4_PACKET_SIZE_SYMBOL_CONTROL                            48
+#define CIGI4_PACKET_SIZE_SHORT_SYMBOL_CONTROL                      24
+#define CIGI4_PACKET_SIZE_SYMBOL_CIRCLE_TEXTURED_DEFINITION         16 + (40 x n)
+#define CIGI4_PACKET_SIZE_SYMBOL_POLYGON_TEXTURED_DEFINITION        16 + (16 x n)
+#define CIGI4_PACKET_SIZE_ENTITY_CONTROL                            16
+#define CIGI4_PACKET_SIZE_ANIMATION_CONTROL                         16
+
+
+
+/*static const value_string cigi4_entity_control_entity_state_vals[] = {
+    {0, "Inactive/Standby"},
+    {1, "Active"},
+    {2, "Destroyed"},
+    {0, NULL},
+};
+
+static const true_false_string cigi4_entity_control_collision_detection_request_tfs = {
+    "Request",
+    "No Request"
+};
+
+static const true_false_string cigi4_entity_control_inherit_alpha_tfs = {
+    "Inherited",
+    "Not Inherited"
+};*/
+
+static const value_string cigi4_entity_control_ground_ocean_clamp_vals[] = {
+    {0, "No Clamp"},
+    {1, "Non-Conformal"},
+    {2, "Conformal"},
+    {0, NULL},
+};
+
+/* CIGI4 Start of Frame*/
+#define CIGI4_PACKET_SIZE_START_OF_FRAME 24
+static int hf_cigi4_start_of_frame = -1;
+static int hf_cigi4_start_of_frame_db_number = -1;
+static int hf_cigi4_start_of_frame_ig_status = -1;
+static int hf_cigi4_start_of_frame_ig_mode = -1;
+static int hf_cigi4_start_of_frame_timestamp_valid = -1;
+static int hf_cigi4_start_of_frame_earth_reference_model = -1;
+static int hf_cigi4_start_of_frame_minor_version = -1;
+static int hf_cigi4_start_of_frame_ig_frame_number = -1;
+static int hf_cigi4_start_of_frame_timestamp = -1;
+static int hf_cigi4_start_of_frame_last_host_frame_number = -1;
+static int hf_cigi4_start_of_frame_condition_overframing = -1;
+static int hf_cigi4_start_of_frame_condition_paging = -1;
+static int hf_cigi4_start_of_frame_condition_excessive_variable_length_data = -1;
+
+
+/*
+static const true_false_string cigi4_entity_control_animation_direction_tfs = {
+    "Backward",
+    "Forward"
+};
+
+static const true_false_string cigi4_entity_control_animation_loop_mode_tfs = {
+    "Continuous",
+    "One-Shot"
+};
+
+static const value_string cigi4_entity_control_animation_state_vals[] = {
+    {0, "Stop"},
+    {1, "Pause"},
+    {2, "Play"},
+    {3, "Continue"},
+    {0, NULL},
+};*/
+
+/*******************End of CIGI4 ********************/
+
 /* Global preferences */
 #define CIGI_VERSION_FROM_PACKET 0
 #define CIGI_VERSION_1   1
 #define CIGI_VERSION_2   2
 #define CIGI_VERSION_3   3
+#define CIGI_VERSION_4   4
 
 static gint global_cigi_version = CIGI_VERSION_FROM_PACKET;
 
@@ -2489,7 +2793,53 @@ packet_is_cigi(tvbuff_t *tvb)
             break;
 
         default:
-            return FALSE;
+            //test if it's GICI4 version 4
+            if (tvb_get_guint8(tvb, 4) != 4)
+                return FALSE;
+
+            if (!tvb_bytes_exist(tvb, 6, 1)) {
+                /* Not enough data available to check */
+                return FALSE;
+            }
+
+            /* CIGI 4 requires that the first packet is always the IG Control or SOF */
+            packet_id = tvb_get_guint8(tvb, 2);     //packet_id is not at the same location
+            packet_size = tvb_get_guint16(tvb, 0);  //packet_size is not at the same location
+            switch (packet_id) {
+            case CIGI4_PACKET_ID_IG_CONTROL:
+                if (packet_size != CIGI4_PACKET_SIZE_IG_CONTROL) {
+                    return FALSE;
+                }
+
+                if (!tvb_bytes_exist(tvb, 7, 2)) {
+                    /* Not enough data available to check */
+                    return FALSE;
+                }
+
+                ig_mode = (tvb_get_guint8(tvb, 7) & 0x03);
+                if (ig_mode > 2) {
+                    return FALSE;
+                }
+                break;
+
+            case CIGI4_PACKET_ID_START_OF_FRAME:
+                if (packet_size != CIGI4_PACKET_SIZE_START_OF_FRAME) {
+                    return FALSE;
+                }
+
+                if (!tvb_bytes_exist(tvb, 5, 1)) {
+                    /* Not enough data available to check */
+                    return FALSE;
+                }
+
+                break;
+            default:
+                return FALSE;
+            }
+            break;
+
+            /* CIGI 4 has the byte swap is done using PacketSize "leftmost" byte*/
+            byte_swap = tvb_get_guint8(tvb, 2);
     }
 
     /* If we made it here, then this is probably CIGI */
@@ -2598,6 +2948,8 @@ dissect_cigi_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
             cigi2_add_tree(tvb, pinfo, cigi_tree);
         } else if ( cigi_version == CIGI_VERSION_3 ) {
             cigi3_add_tree(tvb, pinfo, cigi_tree);
+        } else if ( cigi_version == CIGI_VERSION_4 ) {
+            cigi4_add_tree(tvb, pinfo, cigi_tree);
         } else {
             /* Since there exists no dissector to dissect this version
              * just put the data into a tree using an unknown version */
@@ -3256,6 +3608,8 @@ cigi3_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi3_3_add_symbol_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_SHORT_SYMBOL_CONTROL && cigi_minor_version == 3 ) {
             offset = cigi3_3_add_short_symbol_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
+            offset = cigi4_add_start_of_frame(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_START_OF_FRAME && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
             offset = cigi3_2_add_start_of_frame(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI3_PACKET_ID_START_OF_FRAME ) {
@@ -6324,6 +6678,479 @@ cigi3_add_image_generator_message(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+
+
+/* Create the tree for CIGI 4 */
+static void
+cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
+{ nico
+    gint offset = 0;
+    gint length = 0;
+    gint init_offset = 0;
+
+    gint packet_id = 0;
+    gint packet_size = 0;
+    gint packet_length = 0;
+    guint16 byte_swap = 0;
+
+    proto_tree* cigi_packet_tree = NULL;
+    proto_item* tipacket;
+    int hf_cigi4_packet = -1;
+
+    length = tvb_reported_length(tvb);
+
+    /* Each iteration through this loop is meant to be a separate cigi packet
+     * therefore it is okay to assume that at the top of this look we are given
+     * a new packet to dissect. */
+    while ( offset < length ) {
+
+        packet_id = tvb_get_guint16(tvb, offset + 2);
+        packet_size = tvb_get_guint16(tvb, offset);
+        byte_swap = tvb_get_ntohs(tvb, offset + 2);
+
+        /* If we have the start of frame or IG Control packet set the version */
+        if ( ( packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) && global_cigi_version == CIGI_VERSION_FROM_PACKET ) {
+            cigi_version = tvb_get_guint8(tvb, 4);
+
+            if (( packet_size == CIGI4_PACKET_SIZE_IG_CONTROL && packet_id == CIGI4_PACKET_ID_IG_CONTROL ) || 
+                ( packet_size == CIGI4_PACKET_SIZE_START_OF_FRAME && packet_id == CIGI4_PACKET_ID_START_OF_FRAME )) {
+               cigi_minor_version = tvb_get_guint8(tvb, 7) >> 4;
+            } else {
+               cigi_minor_version = 0;
+            }
+        }
+
+        /* If we have the SOF or IG Control packet set the byte order */
+        if ( ( packet_id == CIGI4_PACKET_ID_IG_CONTROL || packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) && global_cigi_byte_order == CIGI_BYTE_ORDER_FROM_PACKET ) {
+            //If the parser detects a zero in the "leftmost" byte, then the message is in Big Endian byte
+            if (( byte_swap & 0xFF00 ) == 0 ) {
+                cigi_byte_order = ENC_BIG_ENDIAN;
+            } else {
+                cigi_byte_order = ENC_LITTLE_ENDIAN;
+            }
+        }
+
+        /* Add the subtree for the packet */
+        if ( packet_id == CIGI4_PACKET_ID_IG_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_ig_control;
+            packet_length = CIGI4_PACKET_SIZE_IG_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_ENTITY_POSITION ) {
+            hf_cigi4_packet = hf_cigi4_entity_position;
+            packet_length = CIGI4_PACKET_SIZE_ENTITY_POSITION;
+        }/* else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_conformal_clamped_entity_control;
+            packet_length = CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_component_control;
+            packet_length = CIGI4_PACKET_SIZE_COMPONENT_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_short_component_control;
+            packet_length = CIGI4_PACKET_SIZE_SHORT_COMPONENT_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_articulated_part_control;
+            packet_length = CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_short_articulated_part_control;
+            packet_length = CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_rate_control;
+            packet_length = CIGI4_2_PACKET_SIZE_RATE_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_rate_control;
+            packet_length = CIGI4_PACKET_SIZE_RATE_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_celestial_sphere_control;
+            packet_length = CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_atmosphere_control;
+            packet_length = CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_environmental_region_control;
+            packet_length = CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_weather_control;
+            packet_length = CIGI4_PACKET_SIZE_WEATHER_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_maritime_surface_conditions_control;
+            packet_length = CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_wave_control;
+            packet_length = CIGI4_PACKET_SIZE_WAVE_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_terrestrial_surface_conditions_control;
+            packet_length = CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_view_control;
+            packet_length = CIGI4_PACKET_SIZE_VIEW_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_sensor_control;
+            packet_length = CIGI4_PACKET_SIZE_SENSOR_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_motion_tracker_control;
+            packet_length = CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL;
+        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_earth_reference_model_definition;
+            packet_length = CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_trajectory_definition;
+            packet_length = CIGI4_PACKET_SIZE_TRAJECTORY_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_view_definition;
+            packet_length = CIGI4_PACKET_SIZE_VIEW_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_collision_detection_segment_definition;
+            packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_collision_detection_volume_definition;
+            packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3)) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_request;
+            packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_request;
+            packet_length = CIGI4_PACKET_SIZE_HAT_HOT_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_segment_request;
+            packet_length = CIGI4_2_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_segment_request;
+            packet_length = CIGI4_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_vector_request;
+            packet_length = CIGI4_2_PACKET_SIZE_LINE_OF_SIGHT_VECTOR_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_vector_request;
+            packet_length = CIGI4_PACKET_SIZE_LINE_OF_SIGHT_VECTOR_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_POSITION_REQUEST ) {
+            hf_cigi4_packet = hf_cigi4_position_request;
+            packet_length = CIGI4_PACKET_SIZE_POSITION_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_CONDITIONS_REQUEST ) {
+            hf_cigi4_packet = hf_cigi4_environmental_conditions_request;
+            packet_length = CIGI4_PACKET_SIZE_ENVIRONMENTAL_CONDITIONS_REQUEST;
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_SURFACE_DEFINITION ) {
+            hf_cigi4_packet = hf_cigi4_3_symbol_surface_definition;
+            packet_length = CIGI4_PACKET_SIZE_SYMBOL_SURFACE_DEFINITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_start_of_frame;
+            packet_length = CIGI4_2_PACKET_SIZE_START_OF_FRAME;
+        }*/ else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
+            hf_cigi4_packet = hf_cigi4_start_of_frame;
+            packet_length = CIGI4_PACKET_SIZE_START_OF_FRAME;
+        } /*else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_response;
+            packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_response;
+            packet_length = CIGI4_PACKET_SIZE_HAT_HOT_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_extended_response;
+            packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_EXTENDED_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_hat_hot_extended_response;
+            packet_length = CIGI4_PACKET_SIZE_HAT_HOT_EXTENDED_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_response;
+            packet_length = CIGI4_2_PACKET_SIZE_LINE_OF_SIGHT_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_response;
+            packet_length = CIGI4_PACKET_SIZE_LINE_OF_SIGHT_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_EXTENDED_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_extended_response;
+            packet_length = CIGI4_2_PACKET_SIZE_LINE_OF_SIGHT_EXTENDED_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_EXTENDED_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_line_of_sight_extended_response;
+            packet_length = CIGI4_PACKET_SIZE_LINE_OF_SIGHT_EXTENDED_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_sensor_response;
+            packet_length = CIGI4_PACKET_SIZE_SENSOR_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_EXTENDED_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_sensor_extended_response;
+            packet_length = CIGI4_PACKET_SIZE_SENSOR_EXTENDED_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_POSITION_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_position_response;
+            packet_length = CIGI4_PACKET_SIZE_POSITION_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONDITIONS_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_weather_conditions_response;
+            packet_length = CIGI4_PACKET_SIZE_WEATHER_CONDITIONS_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_AEROSOL_CONCENTRATION_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_aerosol_concentration_response;
+            packet_length = CIGI4_PACKET_SIZE_AEROSOL_CONCENTRATION_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_maritime_surface_conditions_response;
+            packet_length = CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE ) {
+            hf_cigi4_packet = hf_cigi4_terrestrial_surface_conditions_response;
+            packet_length = CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE;
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_NOTIFICATION ) {
+            hf_cigi4_packet = hf_cigi4_collision_detection_segment_notification;
+            packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_NOTIFICATION;
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_NOTIFICATION ) {
+            hf_cigi4_packet = hf_cigi4_collision_detection_volume_notification;
+            packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_NOTIFICATION;
+        } else if ( packet_id == CIGI4_PACKET_ID_ANIMATION_STOP_NOTIFICATION ) {
+            hf_cigi4_packet = hf_cigi4_animation_stop_notification;
+            packet_length = CIGI4_PACKET_SIZE_ANIMATION_STOP_NOTIFICATION;
+        } else if ( packet_id == CIGI4_PACKET_ID_EVENT_NOTIFICATION ) {
+            hf_cigi4_packet = hf_cigi4_event_notification;
+            packet_length = CIGI4_PACKET_SIZE_EVENT_NOTIFICATION;
+        } else if ( packet_id == CIGI4_PACKET_ID_IMAGE_GENERATOR_MESSAGE ) {
+            hf_cigi4_packet = hf_cigi4_image_generator_message;
+            packet_length = packet_size;
+        } else if ( packet_id >= CIGI4_PACKET_ID_USER_DEFINED_MIN && packet_id <= CIGI4_PACKET_ID_USER_DEFINED_MAX ) {
+            hf_cigi4_packet = hf_cigi4_user_defined;
+            packet_length = packet_size;
+        } else {
+            hf_cigi4_packet = hf_cigi_unknown;
+            packet_length = packet_size;
+        }*/
+        tipacket = proto_tree_add_none_format(cigi_tree, hf_cigi4_packet, tvb, offset, packet_length,
+                                              "%s (%i bytes)",
+                                              val_to_str_ext_const(packet_id, &cigi3_packet_id_vals_ext, "Unknown"),
+                                              packet_length);
+
+        cigi_packet_tree = proto_item_add_subtree(tipacket, ett_cigi);
+
+        /* In all CIGI versions the first byte of a packet is the packet ID.
+         * The second byte is the size of the packet (in bytes). */
+        init_offset = offset;
+        proto_tree_add_item(cigi_packet_tree, hf_cigi4_packet_id, tvb, offset, 1, cigi_byte_order);
+        offset++;
+
+        proto_tree_add_item(cigi_packet_tree, hf_cigi_packet_size, tvb, offset, 1, cigi_byte_order);
+        offset++;
+
+        if ( packet_id == CIGI4_PACKET_ID_IG_CONTROL ) {
+            offset = cigi4_add_ig_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ENTITY_POSITION ) {
+            offset = cigi4_add_entity_position(tvb, cigi_packet_tree, offset);
+        }/* else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL ) {
+            offset = cigi3_add_conformal_clamped_entity_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
+            offset = cigi4_add_component_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
+            offset = cigi4_add_short_component_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
+            offset = cigi4_add_articulated_part_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+            offset = cigi4_add_short_articulated_part_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3)) {
+            offset = cigi4_add_rate_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+            offset = cigi4_add_celestial_sphere_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+            offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+            offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+            offset = cigi4_add_weather_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+            offset = cigi4_add_maritime_surface_conditions_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
+            offset = cigi4_add_wave_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+            offset = cigi4_add_terrestrial_surface_conditions_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+            offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL ) {
+            offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+            offset = cigi4_add_motion_tracker_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+            offset = cigi4_add_earth_reference_model_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
+            offset = cigi4_add_trajectory_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+            offset = cigi4_add_view_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
+            offset = cigi4_add_collision_detection_segment_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
+            offset = cigi4_add_collision_detection_volume_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
+            offset = cigi4_add_hat_hot_request(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST ) {
+            offset = cigi4_add_line_of_sight_segment_request(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST ) {
+            offset = cigi4_add_line_of_sight_vector_request(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_POSITION_REQUEST ) {
+            offset = cigi4_add_position_request(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_CONDITIONS_REQUEST ) {
+            offset = cigi4_add_environmental_conditions_request(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_SURFACE_DEFINITION && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_surface_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_TEXT_DEFINITION && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_text_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_CIRCLE_DEFINITION && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_circle_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_LINE_DEFINITION && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_line_definition(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_CLONE && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_clone(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SYMBOL_CONTROL && cigi_minor_version == 3 ) {
+            offset = cigi4_add_symbol_control(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_SYMBOL_CONTROL && cigi_minor_version == 3 ) {
+            offset = cigi4_add_short_symbol_control(tvb, cigi_packet_tree, offset);
+        } */else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
+            offset = cigi4_add_start_of_frame(tvb, cigi_packet_tree, offset);
+        }/* else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
+            offset = cigi3_add_hat_hot_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE ) {
+            offset = cigi3_add_hat_hot_extended_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE ) {
+            offset = cigi3_add_line_of_sight_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_EXTENDED_RESPONSE ) {
+            offset = cigi3_add_line_of_sight_extended_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_RESPONSE ) {
+            offset = cigi3_add_sensor_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_EXTENDED_RESPONSE ) {
+            offset = cigi3_add_sensor_extended_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_POSITION_RESPONSE ) {
+            offset = cigi3_add_position_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONDITIONS_RESPONSE ) {
+            offset = cigi3_add_weather_conditions_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_AEROSOL_CONCENTRATION_RESPONSE ) {
+            offset = cigi3_add_aerosol_concentration_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_RESPONSE ) {
+            offset = cigi3_add_maritime_surface_conditions_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_RESPONSE ) {
+            offset = cigi3_add_terrestrial_surface_conditions_response(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_NOTIFICATION ) {
+            offset = cigi3_add_collision_detection_segment_notification(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_NOTIFICATION ) {
+            offset = cigi3_add_collision_detection_volume_notification(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_ANIMATION_STOP_NOTIFICATION ) {
+            offset = cigi3_add_animation_stop_notification(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_EVENT_NOTIFICATION ) {
+            offset = cigi3_add_event_notification(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_IMAGE_GENERATOR_MESSAGE ) {
+            offset = cigi3_add_image_generator_message(tvb, cigi_packet_tree, offset);
+#if 0 /* Fix -Wduplicated-branches * /
+        } else if ( packet_id >= CIGI3_PACKET_ID_USER_DEFINED_MIN && packet_id <= CIGI3_PACKET_ID_USER_DEFINED_MAX ) {
+            offset = cigi_add_data(tvb, cigi_packet_tree, offset);
+#endif
+        }*/ else {
+            offset = cigi_add_data(tvb, cigi_packet_tree, offset);
+        }
+
+        if (offset-init_offset != packet_length) {
+            proto_tree_add_expert(cigi_packet_tree, pinfo, &ei_cigi_invalid_len, tvb, init_offset, offset-init_offset);
+            break;
+        }
+    }
+}
+
+/* CIGI4 IG Control */
+static gint
+cigi4_add_ig_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi_version, tvb, offset, 1, cigi_byte_order);
+    offset++;
+    
+    proto_tree_add_item(tree, hf_cigi4_ig_control_db_number, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_ig_control_entity_substitution_enable, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_ig_control_ig_mode, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_ig_control_timestamp_valid, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_ig_control_smoothing_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_ig_control_minor_version, tvb, offset, 1, cigi_byte_order);
+    offset += 1;
+
+    /* Get the Byte Swap in Big-Endian so that we can display whether the value
+     * is big-endian or little-endian to the user */
+    //proto_tree_add_item(tree, hf_cigi4_byte_swap, tvb, offset, 2, ENC_BIG_ENDIAN);
+    //offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_ig_control_host_frame_number, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_ig_control_last_ig_frame_number, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_ig_control_timestamp, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+/* CIGI4 Start of Frame */
+static gint
+cigi4_add_start_of_frame(tvbuff_t *tvb, proto_tree *tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi_version, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_db_number, tvb, offset, 1, cigi_byte_order);
+    offset += 2; //offset++;
+
+    //proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_status, tvb, offset, 1, cigi_byte_order);
+    //offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_mode, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_timestamp_valid, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_earth_reference_model, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_minor_version, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    /* Get the Byte Swap in Big-Endian so that we can display whether the value
+     * is big-endian or little-endian to the user */
+    //proto_tree_add_item(tree, hf_cigi4_byte_swap, tvb, offset, 2, ENC_BIG_ENDIAN);
+    //offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_ig_frame_number, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_timestamp, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_last_host_frame_number, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_condition_overframing, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_condition_paging, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_start_of_frame_condition_excessive_variable_length_data, tvb, offset, 1, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
+/* CIGI Entity position */
+static gint
+cigi4_add_entity_position(tvbuff_t *tvb, proto_tree *tree, gint offset)
+{   
+    proto_tree_add_item(tree, hf_cigi4_entity_position_attach_state, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_entity_position_ground_ocean_clamp, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_entity_position_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_entity_position_parent_id, tvb, offset, 2, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_roll, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_pitch, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_yaw, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_lat_xoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_lon_yoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi3_entity_control_alt_zoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
 /* Register the protocol with Wireshark */
 void
 proto_register_cigi(void)
@@ -6399,6 +7226,13 @@ proto_register_cigi(void)
             { "Byte Swap", "cigi.byte_swap",
                 FT_UINT16, BASE_HEX, VALS(cigi3_byte_swap_vals), 0x0,
                 "Used to determine whether the incoming data should be byte-swapped", HFILL }
+        },,
+
+        /* CIGI4 */
+        { &hf_cigi4_packet_id,
+            { "Packet ID", "cigi.packet_id",
+                FT_UINT8, BASE_DEC|BASE_EXT_STRING, &cigi4_packet_id_vals_ext, 0x0,
+                "Identifies the packet's ID", HFILL }
         },
 
         /* CIGI2 IG Control */
@@ -6543,6 +7377,40 @@ proto_register_cigi(void)
                 FT_UINT8, BASE_DEC, NULL, 0xF0,
                 "Indicates the minor version of the CIGI interface", HFILL }
         },
+
+        /* CIGI4 IG Control */
+        { &hf_cigi4_ig_control,
+            { "IG Control", "cigi.ig_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "IG Control Packet", HFILL }
+        },
+        { &hf_cigi4_ig_control_db_number,
+            { "Database Number", "cigi.ig_control.db_number",
+                FT_INT8, BASE_DEC, NULL, 0x0,
+                "Used to initiate a database load on the IG", HFILL }
+        },
+        { &hf_cigi4_ig_control_ig_mode,
+            { "IG Mode", "cigi.ig_control.ig_mode",
+                FT_UINT8, BASE_DEC, VALS(cigi3_3_ig_control_ig_mode_vals), 0x03,
+                "Dictates the IG's operational mode", HFILL }
+        },
+        { &hf_cigi4_ig_control_timestamp_valid,
+            { "Timestamp Valid", "cigi.ig_control.timestamp_valid",
+                FT_BOOLEAN, 8, TFS(&tfs_valid_invalid), 0x04,
+                "Indicates whether the timestamp contains a valid value", HFILL }
+        },
+        { &hf_cigi4_ig_control_smoothing_enable,
+            { "Smoothing Enable", "cigi.ig_control.smoothing_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Indicates whether any dead reckoning is enabled.", HFILL }
+        },
+        { &hf_cigi4_ig_control_minor_version,
+            { "Minor Version", "cigi.ig_control.minor_version",
+                FT_UINT8, BASE_DEC, NULL, 0xF0,
+                "Indicates the minor version of the CIGI interface", HFILL }
+        },
+
+
 #if 0
         { &hf_cigi3_3_ig_control_host_frame_number,
             { "Host Frame Number", "cigi.ig_control.host_frame_number",
