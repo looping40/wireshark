@@ -136,10 +136,12 @@ static gint cigi4_add_ig_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_entity_position(tvbuff_t*, proto_tree*, gint);
 //static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_conformal_clamped_entity_position(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_hat_hot_request(tvbuff_t*, proto_tree*, gint);
 //..
 //..
 //..
 static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_hat_hot_response(tvbuff_t*, proto_tree*, gint);
 
 /* CIGI Handle */
 static dissector_handle_t cigi_handle;
@@ -2073,6 +2075,18 @@ static const true_false_string cigi3_2_hat_hot_response_type_tfs = {
     "HAT"
 };
 
+/* CIGI4 HAT/HOT Response */
+#define CIGI4_PACKET_SIZE_HAT_HOT_RESPONSE 16
+static int hf_cigi4_hat_hot_response = -1;
+static int hf_cigi4_hat_hot_response_hat_hot_id = -1;
+static int hf_cigi4_hat_hot_response_flags = -1;
+static int hf_cigi4_hat_hot_response_valid = -1;
+static int hf_cigi4_hat_hot_response_type = -1;
+static int hf_cigi4_hat_hot_response_host_frame_number_lsn = -1;
+static int hf_cigi4_hat_hot_response_height = -1;
+
+static int ett_cigi4_hat_hot_response_flags = -1;
+
 /* CIGI3 HAT/HOT Extended Response */
 #define CIGI3_PACKET_SIZE_HAT_HOT_EXTENDED_RESPONSE 40
 static int hf_cigi3_hat_hot_extended_response = -1;
@@ -2467,6 +2481,10 @@ static int hf_cigi4_ig_control_smoothing_enable = -1;
 static int hf_cigi4_ig_control_entity_substitution = -1;
 static int hf_cigi4_ig_control_entity_substitution_enable = -1;
 
+static int ett_cigi4_ig_control_flags = -1;
+static int ett_cigi4_ig_control_entity_substitution = -1;
+
+
 static const value_string cigi4_ig_control_ig_mode_vals[] = {
     {0, "Reset/Standby"},
     {1, "Operate"},
@@ -2490,12 +2508,14 @@ static int hf_cigi4_entity_position_lat_xoff = -1;
 static int hf_cigi4_entity_position_lon_yoff = -1;
 static int hf_cigi4_entity_position_alt_zoff = -1;
 
+
 #define CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_POSITION         32
 static int hf_cigi4_conformal_clamped_entity_position = -1;
 static int hf_cigi4_conformal_clamped_entity_position_entity_id = -1;
 static int hf_cigi4_conformal_clamped_entity_position_yaw = -1;
 static int hf_cigi4_conformal_clamped_entity_position_lat = -1;
 static int hf_cigi4_conformal_clamped_entity_position_lon = -1;
+
 
 #define CIGI4_PACKET_SIZE_COMPONENT_CONTROL                         40
 static int hf_cigi4_component_control = -1;
@@ -2519,6 +2539,30 @@ static int hf_cigi4_short_component_control_component_state = -1;
 static int hf_cigi4_short_component_control_data_1 = -1;
 static int hf_cigi4_short_component_control_data_2 = -1;
 
+
+
+/* CIGI4 HAT/HOT Request */
+#define CIGI4_PACKET_SIZE_HAT_HOT_REQUEST                           40
+static int hf_cigi4_hat_hot_request = -1;
+static int hf_cigi4_hat_hot_request_hat_hot_id = -1;
+static int hf_cigi4_hat_hot_request_flags = -1;
+static int hf_cigi4_hat_hot_request_type = -1;
+static int hf_cigi4_hat_hot_request_coordinate_system = -1;
+static int hf_cigi4_hat_hot_request_update_period = -1;
+static int hf_cigi4_hat_hot_request_entity_id = -1;
+static int hf_cigi4_hat_hot_request_lat_xoff = -1;
+static int hf_cigi4_hat_hot_request_lon_yoff = -1;
+static int hf_cigi4_hat_hot_request_alt_zoff = -1;
+
+static int ett_cigi4_hat_hot_request_flags = -1;
+
+static const value_string cigi4_hat_hot_request_type_vals[] = {
+    {0, "HAT"},
+    {1, "HOT"},
+    {2, "Extended"},
+    {0, NULL},
+};
+
 #define CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL                  32
 #define CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL            24
 #define CIGI4_PACKET_SIZE_VELOCITY_CONTROL                          32
@@ -2537,7 +2581,6 @@ static int hf_cigi4_short_component_control_data_2 = -1;
 #define CIGI4_PACKET_SIZE_VIEW_DEFINITION                           40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION    40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION     48
-#define CIGI4_PACKET_SIZE_HAT_HOT_REQUEST                           40
 #define CIGI4_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST             72
 #define CIGI4_PACKET_SIZE_LINE_OF_SIGHT_VECTOR_REQUEST              64
 #define CIGI4_PACKET_SIZE_POSITION_REQUEST                           8
@@ -2600,16 +2643,7 @@ static int hf_cigi4_start_of_frame_condition_excessive_variable_length_data = -1
 
 static int ett_cigi4_start_of_frame_flags = -1;
 static int ett_cigi4_start_of_frame_ig_condition_flags = -1;
-static int ett_cigi4_ig_control_flags = -1;
-static int ett_cigi4_ig_control_entity_substitution = -1;
 
-//nico
-#define CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_POSITION 32
-static int hf_cigi3_conformal_clamped_entity_position = -1;
-static int hf_cigi3_conformal_clamped_entity_position_entity_id = -1;
-static int hf_cigi3_conformal_clamped_entity_position_yaw = -1;
-static int hf_cigi3_conformal_clamped_entity_position_lat = -1;
-static int hf_cigi3_conformal_clamped_entity_position_lon = -1;
 
 /*
 static const true_false_string cigi4_entity_control_animation_direction_tfs = {
@@ -2630,7 +2664,7 @@ static const value_string cigi4_entity_control_animation_state_vals[] = {
     {0, NULL},
 };*/
 
-/*******************End of CIGI4 ********************/
+
 
 /* Global preferences */
 #define CIGI_VERSION_FROM_PACKET 0
@@ -6202,6 +6236,30 @@ cigi3_2_add_hat_hot_response(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 HAT/HOT Response */
+static gint
+cigi4_add_hat_hot_response(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+    //subtree
+    tf = proto_tree_add_item(tree, hf_cigi4_hat_hot_response_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_hat_hot_response_flags);
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_response_valid, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_response_type, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_response_host_frame_number_lsn, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_response_hat_hot_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_response_height, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
 /* CIGI3 HAT/HOT Extended Response */
 static gint
 cigi3_add_hat_hot_extended_response(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -6833,13 +6891,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_collision_detection_volume_definition;
             packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION;
-        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3)) {
-            hf_cigi4_packet = hf_cigi4_hat_hot_request;
-            packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_REQUEST;
-        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
+        }*/ else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
             hf_cigi4_packet = hf_cigi4_hat_hot_request;
             packet_length = CIGI4_PACKET_SIZE_HAT_HOT_REQUEST;
-        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+         }/* else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
             hf_cigi4_packet = hf_cigi4_line_of_sight_segment_request;
             packet_length = CIGI4_2_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST;
         } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST ) {
@@ -6863,13 +6918,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } */ else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
             hf_cigi4_packet = hf_cigi4_start_of_frame;
             packet_length = CIGI4_PACKET_SIZE_START_OF_FRAME;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
-            hf_cigi4_packet = hf_cigi4_hat_hot_response;
-            packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_RESPONSE;
         } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
             hf_cigi4_packet = hf_cigi4_hat_hot_response;
             packet_length = CIGI4_PACKET_SIZE_HAT_HOT_RESPONSE;
-        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
             hf_cigi4_packet = hf_cigi4_hat_hot_extended_response;
             packet_length = CIGI4_2_PACKET_SIZE_HAT_HOT_EXTENDED_RESPONSE;
         } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE ) {
@@ -6994,9 +7046,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_collision_detection_segment_definition(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
             offset = cigi4_add_collision_detection_volume_definition(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
+        }*/ else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_REQUEST ) {
             offset = cigi4_add_hat_hot_request(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST ) {
+        } /*else if (packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_SEGMENT_REQUEST) {
             offset = cigi4_add_line_of_sight_segment_request(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_VECTOR_REQUEST ) {
             offset = cigi4_add_line_of_sight_vector_request(tvb, cigi_packet_tree, offset);
@@ -7021,9 +7073,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } */
         else if ( packet_id == CIGI4_PACKET_ID_START_OF_FRAME ) {
             offset = cigi4_add_start_of_frame(tvb, cigi_packet_tree, offset);
-        }/* else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
-            offset = cigi3_add_hat_hot_response(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_RESPONSE ) {
+            offset = cigi4_add_hat_hot_response(tvb, cigi_packet_tree, offset);
+        }/* else if ( packet_id == CIGI4_PACKET_ID_HAT_HOT_EXTENDED_RESPONSE ) {
             offset = cigi3_add_hat_hot_extended_response(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_LINE_OF_SIGHT_RESPONSE ) {
             offset = cigi3_add_line_of_sight_response(tvb, cigi_packet_tree, offset);
@@ -7201,6 +7253,46 @@ cigi4_add_conformal_clamped_entity_position(tvbuff_t* tvb, proto_tree* tree, gin
     offset += 8;
 
     proto_tree_add_item(tree, hf_cigi4_conformal_clamped_entity_position_lon, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
+/* CIGI4 HAT/HOT Request */
+static gint
+cigi4_add_hat_hot_request(tvbuff_t *tvb, proto_tree *tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_hat_hot_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    //subtree
+    tf = proto_tree_add_item(tree, hf_cigi4_hat_hot_request_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_hat_hot_request_flags);
+    proto_tree_add_item(field_tree, hf_cigi4_hat_hot_request_type, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_hat_hot_request_coordinate_system, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_update_period, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //reserved
+    offset += 6;
+
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_lat_xoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_lon_yoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_hat_hot_request_alt_zoff, tvb, offset, 8, cigi_byte_order);
     offset += 8;
 
     return offset;
@@ -7500,7 +7592,8 @@ proto_register_cigi(void)
                 FT_UINT32, BASE_DEC, NULL, 0x0,
                 "Indicates the number of 10 microsecond \"ticks\" since some initial reference time", HFILL }
         },
-        /* CIGI4 Entity Position */
+
+            /* CIGI4 Entity Position */
         { &hf_cigi4_entity_position,
             { "Entity Position", "cigi.entity_position",
                 FT_NONE, BASE_NONE, NULL, 0x0,
@@ -7512,7 +7605,7 @@ proto_register_cigi(void)
                 "Specifies the entity to which this packet is applied", HFILL }
         },
         { &hf_cigi4_entity_position_flags,
-            { "Flags", "cigi.entity_positionl.flags",
+            { "Flags", "cigi.entity_position.flags",
                 FT_UINT8, BASE_HEX, NULL, 0x0,
                 NULL, HFILL }
         },
@@ -10293,6 +10386,59 @@ proto_register_cigi(void)
                 "Specifies the altitude from which the HAT/HOT request is being made or specifies the Z offset of the point from which the HAT/HOT request is being made", HFILL }
         },
 
+        /* CIGI4 HAT/HOT Request */
+        { &hf_cigi4_hat_hot_request,
+            { "HAT/HOT Request", "cigi.hat_hot_request",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "HAT/HOT Request Packet", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_hat_hot_id,
+            { "HAT/HOT ID", "cigi.hat_hot_request.hat_hot_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Identifies the HAT/HOT request", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_flags,
+            { "Request Flags", "cigi.hat_hot_request.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_type,
+            { "Request Type", "cigi.hat_hot_request.type",
+                FT_UINT8, BASE_DEC, VALS(cigi4_hat_hot_request_type_vals), 0x03,
+                "Determines the type of response packet the IG should return for this packet", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_coordinate_system,
+            { "Coordinate System", "cigi.hat_hot_request.coordinate_system",
+                FT_BOOLEAN, 8, TFS(&entity_geodetic_tfs), 0x04,
+                "Specifies the coordinate system within which the test point is defined", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_update_period,
+            { "Update Period", "cigi.hat_hot_request.update_period",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies interval between successive responses to this request. A zero indicates one responses a value n > 0 the IG should respond every nth frame", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_entity_id,
+            { "Entity ID", "cigi.hat_hot_request.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity relative to which the test point is defined", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_lat_xoff,
+            { "Latitude (degrees)/X Offset (m)", "cigi.hat_hot_request.lat_xoff",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the latitude from which the HAT/HOT request is being made or specifies the X offset of the point from which the HAT/HOT request is being made", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_lon_yoff,
+            { "Longitude (degrees)/Y Offset (m)", "cigi.hat_hot_request.lon_yoff",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the longitude from which the HAT/HOT request is being made or specifies the Y offset of the point from which the HAT/HOT request is being made", HFILL }
+        },
+        { &hf_cigi4_hat_hot_request_alt_zoff,
+            { "Altitude (m)/Z Offset (m)", "cigi.hat_hot_request.alt_zoff",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the altitude from which the HAT/HOT request is being made or specifies the Z offset of the point from which the HAT/HOT request is being made", HFILL }
+        },
+
+
         /* CIGI3 Line of Sight Segment Request */
         { &hf_cigi3_line_of_sight_segment_request,
             { "Line of Sight Segment Request", "cigi.los_segment_request",
@@ -11970,6 +12116,44 @@ proto_register_cigi(void)
                 "Contains the requested height", HFILL }
         },
 
+        /* CIGI4 HAT/HOT Response */
+        { &hf_cigi4_hat_hot_response,
+            { "HAT/HOT Response", "cigi.hat_hot_response",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "HAT/HOT Response Packet", HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_hat_hot_id,
+            { "HAT/HOT ID", "cigi.hat_hot_response.hat_hot_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Identifies the HAT or HOT response", HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_flags,
+            { "Request Flags", "cigi.hat_hot_response.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_valid,
+            { "Valid", "cigi.hat_hot_response.valid",
+                FT_BOOLEAN, 8, TFS(&tfs_valid_invalid), 0x01,
+                "Indicates whether the Height parameter contains a valid number", HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_type,
+            { "Response Type", "cigi.hat_hot_response.type",
+                FT_BOOLEAN, 8, TFS(&cigi3_2_hat_hot_response_type_tfs), 0x02,
+                "Indicates whether the Height parameter represent Height Above Terrain or Height Of Terrain", HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_host_frame_number_lsn,
+            { "Host Frame Number LSN", "cigi.hat_hot_response.host_frame_number_lsn",
+                FT_UINT8, BASE_DEC, NULL, 0xf0,
+                "Least significant nibble of the host frame number parameter of the last IG Control packet received before the HAT or HOT is calculated", HFILL }
+        },
+        { &hf_cigi4_hat_hot_response_height,
+            { "Height", "cigi.hat_hot_response.height",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Contains the requested height", HFILL }
+        },
+
+
         /* CIGI3 HAT/HOT Extended Response */
         { &hf_cigi3_hat_hot_extended_response,
             { "HAT/HOT Extended Response", "cigi.hat_hot_ext_response",
@@ -13000,6 +13184,7 @@ proto_register_cigi(void)
         { "from_packet", "From Packet", CIGI_VERSION_FROM_PACKET },
         { "cigi2", "CIGI 2", CIGI_VERSION_2 },
         { "cigi3", "CIGI 3", CIGI_VERSION_3 },
+        { "cigi4", "CIGI 4", CIGI_VERSION_4 },
         { NULL, NULL, 0 }
     };
 
@@ -13016,7 +13201,9 @@ proto_register_cigi(void)
         &ett_cigi4_start_of_frame_flags,
         &ett_cigi4_start_of_frame_ig_condition_flags,
         &ett_cigi4_ig_control_entity_substitution,
-        &ett_cigi4_ig_control_flags
+        &ett_cigi4_ig_control_flags,
+        &ett_cigi4_hat_hot_request_flags,
+        &ett_cigi4_hat_hot_response_flags
     };
 
     /* Register the protocol name and description */
