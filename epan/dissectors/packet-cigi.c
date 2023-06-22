@@ -135,7 +135,7 @@ static void cigi4_add_tree(tvbuff_t*, packet_info*, proto_tree*);
 static gint cigi4_add_ig_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_entity_position(tvbuff_t*, proto_tree*, gint);
 //static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
-//static gint cigi4_add_conformal_clamped_entity_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_conformal_clamped_entity_position(tvbuff_t*, proto_tree*, gint);
 //..
 //..
 //..
@@ -2332,7 +2332,7 @@ static int hf_cigi4_packet_id = -1;
 static int hf_cigi4_packet_size = -1;
 #define CIGI4_PACKET_ID_IG_CONTROL                                   0x00
 #define CIGI4_PACKET_ID_ENTITY_POSITION                              0x01
-#define CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL             0x02
+#define CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_POSITION            0x02
 #define CIGI4_PACKET_ID_COMPONENT_CONTROL                            0x03
 #define CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL                      0x04
 #define CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL                     0x05
@@ -2392,7 +2392,7 @@ static int hf_cigi4_packet_size = -1;
 static const value_string cigi4_packet_id_vals[] = {
     {CIGI4_PACKET_ID_IG_CONTROL, "IG Control"},
     {CIGI4_PACKET_ID_ENTITY_POSITION, "Entity Position"},
-    {CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL, "Conformal Clamped Entity Control"},
+    {CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_POSITION, "Conformal Clamped Entity Position"},
     {CIGI4_PACKET_ID_COMPONENT_CONTROL, "Component Control"},
     {CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL, "Short Component Control"},
     {CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL, "Articulated Part Control"},
@@ -2602,6 +2602,14 @@ static int ett_cigi4_start_of_frame_flags = -1;
 static int ett_cigi4_start_of_frame_ig_condition_flags = -1;
 static int ett_cigi4_ig_control_flags = -1;
 static int ett_cigi4_ig_control_entity_substitution = -1;
+
+//nico
+#define CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_POSITION 32
+static int hf_cigi3_conformal_clamped_entity_position = -1;
+static int hf_cigi3_conformal_clamped_entity_position_entity_id = -1;
+static int hf_cigi3_conformal_clamped_entity_position_yaw = -1;
+static int hf_cigi3_conformal_clamped_entity_position_lat = -1;
+static int hf_cigi3_conformal_clamped_entity_position_lon = -1;
 
 /*
 static const true_false_string cigi4_entity_control_animation_direction_tfs = {
@@ -6758,11 +6766,11 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_ENTITY_POSITION ) {
             hf_cigi4_packet = hf_cigi4_entity_position;
             packet_length = CIGI4_PACKET_SIZE_ENTITY_POSITION;
+        } else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_POSITION ) {
+            hf_cigi4_packet = hf_cigi4_conformal_clamped_entity_position;
+            packet_length = CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_POSITION;
         }
-        /* else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL ) {
-            hf_cigi4_packet = hf_cigi4_conformal_clamped_entity_control;
-            packet_length = CIGI4_PACKET_SIZE_CONFORMAL_CLAMPED_ENTITY_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
+        /*  else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_component_control;
             packet_length = CIGI4_PACKET_SIZE_COMPONENT_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
@@ -6943,10 +6951,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_ig_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ENTITY_POSITION ) {
             offset = cigi4_add_entity_position(tvb, cigi_packet_tree, offset);
+        } else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_POSITION ) {
+            offset = cigi4_add_conformal_clamped_entity_position(tvb, cigi_packet_tree, offset);
         }
-        /* else if ( packet_id == CIGI4_PACKET_ID_CONFORMAL_CLAMPED_ENTITY_CONTROL ) {
-            offset = cigi3_add_conformal_clamped_entity_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
+        /*  else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
             offset = cigi4_add_component_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
             offset = cigi4_add_short_component_control(tvb, cigi_packet_tree, offset);
@@ -7174,6 +7182,25 @@ cigi4_add_entity_position(tvbuff_t *tvb, proto_tree *tree, gint offset)
     offset += 8;
 
     proto_tree_add_item(tree, hf_cigi3_entity_control_alt_zoff, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
+/* CIGI Conformal Clamped Entity Position */
+static gint
+cigi4_add_conformal_clamped_entity_position(tvbuff_t* tvb, proto_tree* tree, gint offset) {
+    proto_tree_add_item(tree, hf_cigi4_conformal_clamped_entity_position_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_conformal_clamped_entity_position_yaw, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_conformal_clamped_entity_position_lat, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_conformal_clamped_entity_position_lon, tvb, offset, 8, cigi_byte_order);
     offset += 8;
 
     return offset;
@@ -7474,7 +7501,6 @@ proto_register_cigi(void)
                 "Indicates the number of 10 microsecond \"ticks\" since some initial reference time", HFILL }
         },
         /* CIGI4 Entity Position */
-        //nico
         { &hf_cigi4_entity_position,
             { "Entity Position", "cigi.entity_position",
                 FT_NONE, BASE_NONE, NULL, 0x0,
@@ -7490,7 +7516,6 @@ proto_register_cigi(void)
                 FT_UINT8, BASE_HEX, NULL, 0x0,
                 NULL, HFILL }
         },
-
         { &hf_cigi4_entity_position_attach_state,
             { "Attach State", "cigi.entity_position.attach_state",
                 FT_BOOLEAN, 8, TFS(&attach_detach_tfs), 0x01,
@@ -7861,6 +7886,33 @@ proto_register_cigi(void)
         },
         { &hf_cigi3_conformal_clamped_entity_control_lon,
             { "Longitude (degrees)", "cigi.conformal_clamped_entity_control.lon",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the entity's geodetic longitude", HFILL }
+        },
+
+        /* CIGI4 Conformal Clamped Entity Control */
+        { &hf_cigi4_conformal_clamped_entity_position,
+            { "Conformal Clamped Entity Control", "cigi.conformal_clamped_entity_position",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Conformal Clamped Entity Control Packet", HFILL }
+        },
+        { &hf_cigi4_conformal_clamped_entity_position_entity_id,
+            { "Entity ID", "cigi.conformal_clamped_entity_position.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which this packet is applied", HFILL }
+        },
+        { &hf_cigi4_conformal_clamped_entity_position_yaw,
+            { "Yaw (degrees)", "cigi.conformal_clamped_entity_position.yaw",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the instantaneous heading of the entity", HFILL }
+        },
+        { &hf_cigi4_conformal_clamped_entity_position_lat,
+            { "Latitude (degrees)", "cigi.conformal_clamped_entity_position.lat",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the entity's geodetic latitude", HFILL }
+        },
+        { &hf_cigi4_conformal_clamped_entity_position_lon,
+            { "Longitude (degrees)", "cigi.conformal_clamped_entity_position.lon",
                 FT_DOUBLE, BASE_NONE, NULL, 0x0,
                 "Specifies the entity's geodetic longitude", HFILL }
         },
@@ -11783,7 +11835,7 @@ proto_register_cigi(void)
         },
         { &hf_cigi4_start_of_frame_ig_mode,
             { "IG Mode", "cigi.sof.ig_mode",
-                FT_UINT8, BASE_DEC /*| BASE_EXT_STRING*/, VALS(cigi3_2_start_of_frame_ig_mode_vals), 0x03,
+                FT_UINT8, BASE_DEC, VALS(cigi3_2_start_of_frame_ig_mode_vals), 0x03,
                 "Indicates the current IG mode", HFILL }
         },
         { &hf_cigi4_start_of_frame_timestamp_valid,
