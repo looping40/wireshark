@@ -547,6 +547,8 @@ main_ui_->goToLineEdit->setValidator(goToLineQiv);
     connect(&capture_file_, SIGNAL(captureEvent(CaptureEvent)),
             main_ui_->statusBar, SLOT(captureEventHandler(CaptureEvent)));
 
+    connect(mainApp, SIGNAL(freezePacketList(bool)),
+            packet_list_, SLOT(freezePacketList(bool)));
     connect(mainApp, SIGNAL(columnsChanged()),
             packet_list_, SLOT(columnsChanged()));
     connect(mainApp, SIGNAL(preferencesChanged()),
@@ -2272,7 +2274,7 @@ void LograyMainWindow::initConversationMenus()
     connect(colorize_action, SIGNAL(triggered()), this, SLOT(colorizeActionTriggered()));
 }
 
-gboolean LograyMainWindow::addExportObjectsMenuItem(const void *, void *value, void *userdata)
+bool LograyMainWindow::addExportObjectsMenuItem(const void *, void *value, void *userdata)
 {
     register_eo_t *eo = (register_eo_t*)value;
     LograyMainWindow *window = (LograyMainWindow*)userdata;
