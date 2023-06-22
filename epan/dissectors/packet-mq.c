@@ -1309,7 +1309,7 @@ static gint dissect_mq_encoding(proto_tree* tree, int hfindex, tvbuff_t* tvb, co
     pEnc = sEnc;
 
 #define CHECK_ENC(M, T) ((uEnc & M) == T)
-#define DOPRT(A) pEnc += snprintf(pEnc, (gulong)(sizeof(sEnc)-1-(pEnc-sEnc)), A);
+#define DOPRT(A) pEnc += snprintf(pEnc, sizeof(sEnc)-1-(pEnc-sEnc), A);
     if (CHECK_ENC(MQ_MQENC_FLOAT_MASK, MQ_MQENC_FLOAT_UNDEFINED))
     {
         DOPRT("FLT_UNDEFINED");
@@ -4736,6 +4736,8 @@ void proto_register_mq(void)
 
     mq_module = prefs_register_protocol(proto_mq, NULL);
     mq_handle = register_dissector("mq", dissect_mq_tcp, proto_mq);
+    mq_spx_handle = register_dissector("mq.spx", dissect_mq_spx, proto_mq);
+
 
     prefs_register_bool_preference(mq_module, "desegment",
         "Reassemble MQ messages spanning multiple TCP segments",
@@ -4753,8 +4755,6 @@ void proto_reg_handoff_mq(void)
     /*  Unlike some protocol (HTTP, POP3, ...) that clearly map to a standard
     *  class of applications (web browser, e-mail client, ...) and have a very well
     *  known port number, the MQ applications are most often specific to a business application */
-
-    mq_spx_handle = create_dissector_handle(dissect_mq_spx, proto_mq);
 
     dissector_add_for_decode_as_with_preference("tcp.port", mq_handle);
     ssl_dissector_add(0, mq_handle);
