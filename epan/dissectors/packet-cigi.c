@@ -138,9 +138,8 @@ static gint cigi4_add_conformal_clamped_entity_position(tvbuff_t*, proto_tree*, 
 static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_articulated_part_control(tvbuff_t*, proto_tree*, gint);
-/*
 static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_rate_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
@@ -1263,6 +1262,33 @@ static const value_string cigi3_short_articulated_part_control_dof_select_vals[]
     {0, NULL},
 };
 
+/* CIGI4 Short Articulated Part Control */
+#define CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL            24
+static int hf_cigi4_short_articulated_part_control = -1;
+static int hf_cigi4_short_articulated_part_control_entity_id = -1;
+static int hf_cigi4_short_articulated_part_control_part_id_1 = -1;
+static int hf_cigi4_short_articulated_part_control_part_id_2 = -1;
+static int hf_cigi4_short_articulated_part_control_part_enable_flags = -1;
+static int hf_cigi4_short_articulated_part_control_dof_select_1 = -1;
+static int hf_cigi4_short_articulated_part_control_dof_select_2 = -1;
+static int hf_cigi4_short_articulated_part_control_part_enable_1 = -1;
+static int hf_cigi4_short_articulated_part_control_part_enable_2 = -1;
+static int hf_cigi4_short_articulated_part_control_dof_1 = -1;
+static int hf_cigi4_short_articulated_part_control_dof_2 = -1;
+
+static int ett_cigi4_short_articulated_part_control_part_enable_flags = -1;
+
+static const value_string cigi4_short_articulated_part_control_dof_select_vals[] = {
+    {0, "Not Used"},
+    {1, "X Offset"},
+    {2, "Y Offset"},
+    {3, "Z Offset"},
+    {4, "Yaw"},
+    {5, "Pitch"},
+    {6, "Roll"},
+    {0, NULL},
+};
+
 /* CIGI3 Rate Control */
 #define CIGI3_PACKET_SIZE_RATE_CONTROL 32
 static int hf_cigi3_rate_control = -1;
@@ -1291,6 +1317,29 @@ static int hf_cigi3_2_rate_control_pitch_rate = -1;
 static int hf_cigi3_2_rate_control_yaw_rate = -1;
 
 static const true_false_string cigi3_2_rate_control_coord_sys_select_vals = {
+    "Local",
+    "World/Parent"
+};
+
+/* CIGI4 Rate Control */
+#define CIGI4_PACKET_SIZE_VELOCITY_CONTROL       32
+
+static int  hf_cigi4_velocity_control = -1;
+static int  hf_cigi4_velocity_control_entity_id = -1;
+static int  hf_cigi4_velocity_control_part_id = -1;
+static int  hf_cigi4_velocity_control_flags = -1;
+static int  hf_cigi4_velocity_control_apply_to_part = -1;
+static int  hf_cigi4_velocity_control_coordinate_system = -1;
+static int  hf_cigi4_velocity_control_x_rate = -1;
+static int  hf_cigi4_velocity_control_y_rate = -1;
+static int  hf_cigi4_velocity_control_z_rate = -1;
+static int  hf_cigi4_velocity_control_roll_rate = -1;
+static int  hf_cigi4_velocity_control_pitch_rate = -1;
+static int  hf_cigi4_velocity_control_yaw_rate = -1;
+
+static int  ett_cigi4_velocity_control_flags = -1;
+
+static const true_false_string cigi4_velocity_control_coord_sys_select_vals = {
     "Local",
     "World/Parent"
 };
@@ -2641,9 +2690,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
     {0, NULL},
 };
 
-#define CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL                  32
-#define CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL            24
-#define CIGI4_PACKET_SIZE_VELOCITY_CONTROL                          32
 #define CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL                  24
 #define CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL                        32
 #define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL              48
@@ -3494,7 +3540,7 @@ cigi3_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             hf_cigi3_packet = hf_cigi3_articulated_part_control;
             packet_length = CIGI3_PACKET_SIZE_ARTICULATED_PART_CONTROL;
         } else if ( packet_id == CIGI3_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
-            hf_cigi3_packet = hf_cigi3_short_articulated_part_control;
+            hf_cigi3_packet = hf_cigi4_short_articulated_part_control;
             packet_length = CIGI3_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL;
         } else if ( packet_id == CIGI3_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
             hf_cigi3_packet = hf_cigi3_2_rate_control;
@@ -5075,6 +5121,45 @@ cigi3_add_short_articulated_part_control(tvbuff_t *tvb, proto_tree *tree, gint o
     return offset;
 }
 
+/* CIGI4 Short Articulated Part Control */
+static gint
+cigi4_add_short_articulated_part_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_part_id_1, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_part_id_2, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //enabled Flags
+    tf = proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_part_enable_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_short_articulated_part_control_part_enable_flags);
+
+    proto_tree_add_item(field_tree, hf_cigi4_short_articulated_part_control_dof_select_1, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_short_articulated_part_control_dof_select_2, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_short_articulated_part_control_part_enable_1, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_short_articulated_part_control_part_enable_2, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //reserved
+    offset += 3;
+
+    proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_dof_1, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_short_articulated_part_control_dof_2, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
 /* CIGI3 Rate Control */
 static gint
 cigi3_add_rate_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -5143,6 +5228,48 @@ cigi3_2_add_rate_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
 
     return offset;
 }
+
+/* CIGI4 Velocity Control */
+static gint
+cigi4_add_velocity_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_part_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //Flags
+    tf = proto_tree_add_item(tree, hf_cigi4_velocity_control_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_velocity_control_flags);
+    proto_tree_add_item(field_tree, hf_cigi4_velocity_control_apply_to_part, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_velocity_control_coordinate_system, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_x_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_y_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_z_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_roll_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_pitch_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_velocity_control_yaw_rate, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
 
 /* CIGI3 Celestial Sphere Control */
 static gint
@@ -7026,16 +7153,13 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_articulated_part_control;
             packet_length = CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL;
-        }/* else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_short_articulated_part_control;
             packet_length = CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
-            hf_cigi4_packet = hf_cigi4_rate_control;
-            packet_length = CIGI4_2_PACKET_SIZE_RATE_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL ) {
-            hf_cigi4_packet = hf_cigi4_rate_control;
-            packet_length = CIGI4_PACKET_SIZE_RATE_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VELOCITY_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_velocity_control;
+            packet_length = CIGI4_PACKET_SIZE_VELOCITY_CONTROL;
+        } /* else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_celestial_sphere_control;
             packet_length = CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
@@ -7197,12 +7321,12 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_short_component_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
             offset = cigi4_add_articulated_part_control(tvb, cigi_packet_tree, offset);
-        }
-        /* else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
             offset = cigi4_add_short_articulated_part_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3)) {
-            offset = cigi4_add_rate_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VELOCITY_CONTROL ) {
+            offset = cigi4_add_velocity_control(tvb, cigi_packet_tree, offset);
+        }
+        /* else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             offset = cigi4_add_celestial_sphere_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
@@ -8862,6 +8986,63 @@ proto_register_cigi(void)
                 "Specifies either an offset or an angular position for the part identified by Articulated Part ID 2", HFILL }
         },
 
+        /* CIGI4 Short Articulated Part Control */
+        { &hf_cigi4_short_articulated_part_control,
+            { "Short Articulated Part Control", "cigi.short_art_part_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Short Articulated Part Control Packet", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_entity_id,
+            { "Entity ID", "cigi.short_art_part_control.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the articulated part(s) belongs", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_part_id_1,
+            { "Articulated Part ID 1", "cigi.short_art_part_control.part_id_1",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies an articulated part to which the data in this packet should be applied", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_part_enable_flags,
+            { "Request Flags", "cigi.cigi4_short_art_part_control.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_part_id_2,
+            { "Articulated Part ID 2", "cigi.short_art_part_control.part_id_2",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies an articulated part to which the data in this packet should be applied", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_dof_select_1,
+            { "DOF Select 1", "cigi.short_art_part_control.dof_select_1",
+                FT_UINT8, BASE_DEC, VALS(cigi4_short_articulated_part_control_dof_select_vals), 0x07,
+                "Specifies the degree of freedom to which the value of DOF 1 is applied", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_dof_select_2,
+            { "DOF Select 2", "cigi.short_art_part_control.dof_select_2",
+                FT_UINT8, BASE_DEC, VALS(cigi4_short_articulated_part_control_dof_select_vals), 0x38,
+                "Specifies the degree of freedom to which the value of DOF 2 is applied", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_part_enable_1,
+            { "Articulated Part Enable 1", "cigi.short_art_part_control.part_enable_1",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x40,
+                "Determines whether the articulated part submodel specified by Articulated Part ID 1 should be enabled or disabled within the scene graph", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_part_enable_2,
+            { "Articulated Part Enable 2", "cigi.short_art_part_control.part_enable_2",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x80,
+                "Determines whether the articulated part submodel specified by Articulated Part ID 2 should be enabled or disabled within the scene graph", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_dof_1,
+            { "DOF 1", "cigi.short_art_part_control.dof_1",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies either an offset or an angular position for the part identified by Articulated Part ID 1", HFILL }
+        },
+        { &hf_cigi4_short_articulated_part_control_dof_2,
+            { "DOF 2", "cigi.short_art_part_control.dof_2",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies either an offset or an angular position for the part identified by Articulated Part ID 2", HFILL }
+        },
+
         /* CIGI2 Rate Control */
         { &hf_cigi2_rate_control,
             { "Rate Control", "cigi.rate_control",
@@ -9013,6 +9194,68 @@ proto_register_cigi(void)
                 "Specifies the angle of rotation of the articulated part submodel about its Y axis after yaw has been applied", HFILL }
         },
         { &hf_cigi3_2_rate_control_yaw_rate,
+            { "Yaw Angular Rate (degrees/s)", "cigi.rate_control.yaw_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part about its Z axis when its X axis is parallel to that of the entity", HFILL }
+        },
+
+        /* CIGI4 Velocity Control */
+        { & hf_cigi4_velocity_control,
+            { "Rate Control", "cigi.rate_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Velocity Control Packet", HFILL }
+        },
+        { & hf_cigi4_velocity_control_entity_id,
+            { "Entity ID", "cigi.rate_control.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the rate should be applied", HFILL }
+        },
+        { & hf_cigi4_velocity_control_part_id,
+            { "Articulated Part ID", "cigi.rate_control.part_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the articulated part to which the rate should be applied", HFILL }
+        },
+        { &hf_cigi4_velocity_control_flags,
+            { "Flags", "cigi.rate_control.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { & hf_cigi4_velocity_control_apply_to_part,
+            { "Apply to Articulated Part", "cigi.rate_control.apply_to_part",
+                FT_BOOLEAN, 8, TFS(&tfs_true_false), 0x01,
+                "Determines whether the rate is applied to the articulated part specified by the Articulated Part ID parameter", HFILL }
+        },
+        { & hf_cigi4_velocity_control_coordinate_system,
+            { "Coordinate System", "cigi.rate_control.coordinate_system",
+                FT_BOOLEAN, 8, TFS(&cigi4_velocity_control_coord_sys_select_vals), 0x02,
+                "Specifies the reference coordinate system to which the linear and angular rates are applied", HFILL }
+        },
+        { & hf_cigi4_velocity_control_x_rate,
+            { "X Linear Rate (m/s)", "cigi.rate_control.x_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the X component of a linear velocity vector", HFILL }
+        },
+        { & hf_cigi4_velocity_control_y_rate,
+            { "Y Linear Rate (m/s)", "cigi.rate_control.y_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the Y component of a linear velocity vector", HFILL }
+        },
+        { & hf_cigi4_velocity_control_z_rate,
+            { "Z Linear Rate (m/s)", "cigi.rate_control.z_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the Z component of a linear velocity vector", HFILL }
+        },
+        { & hf_cigi4_velocity_control_roll_rate,
+            { "Roll Angular Rate (degrees/s)", "cigi.rate_control.roll_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its X axis after yaw and pitch have been applied", HFILL }
+        },
+        { & hf_cigi4_velocity_control_pitch_rate,
+            { "Pitch Angular Rate (degrees/s)", "cigi.rate_control.pitch_rate",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its Y axis after yaw has been applied", HFILL }
+        },
+        { & hf_cigi4_velocity_control_yaw_rate,
             { "Yaw Angular Rate (degrees/s)", "cigi.rate_control.yaw_rate",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the angle of rotation of the articulated part about its Z axis when its X axis is parallel to that of the entity", HFILL }
@@ -13655,7 +13898,7 @@ proto_register_cigi(void)
     };
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static gint* ett[] = {
         &ett_cigi,
         &ett_cigi4_start_of_frame_flags,
         &ett_cigi4_start_of_frame_ig_condition_flags,
@@ -13664,7 +13907,9 @@ proto_register_cigi(void)
         &ett_cigi4_hat_hot_request_flags,
         &ett_cigi4_hat_hot_response_flags,
         &ett_cigi4_hat_hot_extended_response_flags,
-        &ett_cigi4_articulated_part_control_part_enable_flags
+        &ett_cigi4_articulated_part_control_part_enable_flags,
+        &ett_cigi4_short_articulated_part_control_part_enable_flags,
+        & ett_cigi4_velocity_control_flags
     };
 
     /* Register the protocol name and description */
