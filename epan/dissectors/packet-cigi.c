@@ -134,17 +134,54 @@ static gint cigi3_3_add_short_symbol_control(tvbuff_t*, proto_tree*, gint);
 static void cigi4_add_tree(tvbuff_t*, packet_info*, proto_tree*);
 static gint cigi4_add_ig_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_entity_position(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_conformal_clamped_entity_position(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_component_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_conformal_clamped_entity_position(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_hat_hot_request(tvbuff_t*, proto_tree*, gint);
-//..
-//..
-//..
+static gint cigi4_add_articulated_part_control(tvbuff_t*, proto_tree*, gint);
+/*
+static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_rate_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_trajectory_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_view_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_collision_detection_segment_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_collision_detection_volume_definition(tvbuff_t*, proto_tree*, gint);*/
+static gint cigi4_add_hat_hot_request(tvbuff_t*, proto_tree*, gint);/*
+static gint cigi4_add_line_of_sight_segment_request(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_line_of_sight_vector_request(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_position_request(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_environmental_conditions_request(tvbuff_t*, proto_tree*, gint);*/
+
+static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_hat_hot_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_hat_hot_extended_response(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_hat_hot_response(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_hat_hot_extended_response(tvbuff_t*, proto_tree*, gint);
-
+static gint cigi4_add_line_of_sight_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_line_of_sight_extended_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_sensor_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_sensor_extended_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_position_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_weather_conditions_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_aerosol_concentration_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_maritime_surface_conditions_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_terrestrial_surface_conditions_response(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_collision_detection_segment_notification(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_collision_detection_volume_notification(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_animation_stop_notification(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_event_notification(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_image_generator_message(tvbuff_t*, proto_tree*, gint);*/
 
 /* CIGI Handle */
 static dissector_handle_t cigi_handle;
@@ -1178,6 +1215,29 @@ static int hf_cigi3_articulated_part_control_zoff = -1;
 static int hf_cigi3_articulated_part_control_roll = -1;
 static int hf_cigi3_articulated_part_control_pitch = -1;
 static int hf_cigi3_articulated_part_control_yaw = -1;
+
+/* CIGI4 Articulated Part Control */
+#define CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL 32
+static int hf_cigi4_articulated_part_control = -1;
+static int hf_cigi4_articulated_part_control_entity_id = -1;
+static int hf_cigi4_articulated_part_control_part_id = -1;
+static int hf_cigi4_articulated_part_control_part_enable_flags = -1;
+static int hf_cigi4_articulated_part_control_part_enable = -1;
+static int hf_cigi4_articulated_part_control_xoff_enable = -1;
+static int hf_cigi4_articulated_part_control_yoff_enable = -1;
+static int hf_cigi4_articulated_part_control_zoff_enable = -1;
+static int hf_cigi4_articulated_part_control_roll_enable = -1;
+static int hf_cigi4_articulated_part_control_pitch_enable = -1;
+static int hf_cigi4_articulated_part_control_yaw_enable = -1;
+static int hf_cigi4_articulated_part_control_xoff = -1;
+static int hf_cigi4_articulated_part_control_yoff = -1;
+static int hf_cigi4_articulated_part_control_zoff = -1;
+static int hf_cigi4_articulated_part_control_roll = -1;
+static int hf_cigi4_articulated_part_control_pitch = -1;
+static int hf_cigi4_articulated_part_control_yaw = -1;
+
+static int ett_cigi4_articulated_part_control_part_enable_flags = -1;
+
 
 /* CIGI3 Short Articulated Part Control */
 #define CIGI3_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL 16
@@ -4939,6 +4999,54 @@ cigi3_add_articulated_part_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 Articulated Part Control */
+static gint
+cigi4_add_articulated_part_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_part_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //enabled Flags
+    tf = proto_tree_add_item(tree, hf_cigi4_hat_hot_extended_response_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_hat_hot_extended_response_flags);
+
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_part_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_xoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_yoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_zoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_roll_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_pitch_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_articulated_part_control_yaw_enable, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_xoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_yoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_zoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_roll, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_pitch, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_articulated_part_control_yaw, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
+
 /* CIGI3 Short Articulated Part Control */
 static gint
 cigi3_add_short_articulated_part_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -6912,14 +7020,13 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_COMPONENT_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_component_control;
             packet_length = CIGI4_PACKET_SIZE_COMPONENT_CONTROL;
-        }/*
-         else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_short_component_control;
             packet_length = CIGI4_PACKET_SIZE_SHORT_COMPONENT_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_articulated_part_control;
             packet_length = CIGI4_PACKET_SIZE_ARTICULATED_PART_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+        }/* else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_short_articulated_part_control;
             packet_length = CIGI4_PACKET_SIZE_SHORT_ARTICULATED_PART_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3) ) {
@@ -7088,10 +7195,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_component_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_SHORT_COMPONENT_CONTROL ) {
             offset = cigi4_add_short_component_control(tvb, cigi_packet_tree, offset);
-        }
-        /* else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ARTICULATED_PART_CONTROL ) {
             offset = cigi4_add_articulated_part_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
+        }
+        /* else if ( packet_id == CIGI4_PACKET_ID_SHORT_ARTICULATED_PART_CONTROL ) {
             offset = cigi4_add_short_articulated_part_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_RATE_CONTROL && (cigi_minor_version == 2 || cigi_minor_version == 3)) {
             offset = cigi4_add_rate_control(tvb, cigi_packet_tree, offset);
@@ -8615,6 +8722,89 @@ proto_register_cigi(void)
                 "Specifies the angle of rotation of the articulated part submodel about its Y axis after yaw has been applied", HFILL }
         },
         { &hf_cigi3_articulated_part_control_yaw,
+            { "Yaw (degrees)", "cigi.art_part_control.yaw",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part about its Z axis", HFILL }
+        },
+
+
+        /* CIGI4 Articulated Part Control */
+        { &hf_cigi4_articulated_part_control,
+            { "Articulated Part Control", "cigi.art_part_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Articulated Part Control Packet", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_entity_id,
+            { "Entity ID", "cigi.art_part_control.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the articulated part belongs", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_part_id,
+            { "Articulated Part ID", "cigi.art_part_control.part_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the articulated part to which the data in this packet should be applied", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_part_enable,
+            { "Articulated Part Enable", "cigi.art_part_control.part_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Determines whether the articulated part submodel should be enabled or disabled within the scene graph", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_xoff_enable,
+            { "X Offset Enable", "cigi.art_part_control.xoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Determines whether the X Offset parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_yoff_enable,
+            { "Y Offset Enable", "cigi.art_part_control.yoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Determines whether the Y Offset parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_zoff_enable,
+            { "Z Offset Enable", "cigi.art_part_control.zoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Determines whether the Z Offset parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_roll_enable,
+            { "Roll Enable", "cigi.art_part_control.roll_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x10,
+                "Determines whether the Roll parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_pitch_enable,
+            { "Pitch Enable", "cigi.art_part_control.pitch_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x20,
+                "Determines whether the Pitch parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_yaw_enable,
+            { "Yaw Enable", "cigi.art_part_control.yaw_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x40,
+                "Determines whether the Yaw parameter of the current packet should be applied to the articulated part", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_xoff,
+            { "X Offset (m)", "cigi.art_part_control.xoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the distance of the articulated part along its X axis", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_yoff,
+            { "Y Offset (m)", "cigi.art_part_control.yoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the distance of the articulated part along its Y axis", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_zoff,
+            { "Z Offset (m)", "cigi.art_part_control.zoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the distance of the articulated part along its Z axis", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_roll,
+            { "Roll (degrees)", "cigi.art_part_control.roll",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its X axis after yaw and pitch have been applied", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_pitch,
+            { "Pitch (degrees)", "cigi.art_part_control.pitch",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its Y axis after yaw has been applied", HFILL }
+        },
+        { &hf_cigi4_articulated_part_control_yaw,
             { "Yaw (degrees)", "cigi.art_part_control.yaw",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the angle of rotation of the articulated part about its Z axis", HFILL }
@@ -13473,7 +13663,8 @@ proto_register_cigi(void)
         &ett_cigi4_ig_control_flags,
         &ett_cigi4_hat_hot_request_flags,
         &ett_cigi4_hat_hot_response_flags,
-        &ett_cigi4_hat_hot_extended_response_flags
+        &ett_cigi4_hat_hot_extended_response_flags,
+        &ett_cigi4_articulated_part_control_part_enable_flags
     };
 
     /* Register the protocol name and description */
