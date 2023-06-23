@@ -146,8 +146,8 @@ static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint)
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);*/
+static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
@@ -164,9 +164,6 @@ static gint cigi4_add_environmental_conditions_request(tvbuff_t*, proto_tree*, g
 static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_hat_hot_response(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_hat_hot_extended_response(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_start_of_frame(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_hat_hot_response(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_hat_hot_extended_response(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_line_of_sight_response(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_line_of_sight_extended_response(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_sensor_response(tvbuff_t*, proto_tree*, gint);
@@ -1548,6 +1545,28 @@ static int hf_cigi3_view_control_roll = -1;
 static int hf_cigi3_view_control_pitch = -1;
 static int hf_cigi3_view_control_yaw = -1;
 
+/* CIGI4 View Control */
+#define CIGI4_PACKET_SIZE_VIEW_CONTROL 40
+static int hf_cigi4_view_control = -1;
+static int hf_cigi4_view_control_view_id = -1;
+static int hf_cigi4_view_control_group_id = -1;
+static int hf_cigi4_view_control_enable_flags = -1;
+static int hf_cigi4_view_control_xoff_enable = -1;
+static int hf_cigi4_view_control_yoff_enable = -1;
+static int hf_cigi4_view_control_zoff_enable = -1;
+static int hf_cigi4_view_control_roll_enable = -1;
+static int hf_cigi4_view_control_pitch_enable = -1;
+static int hf_cigi4_view_control_yaw_enable = -1;
+static int hf_cigi4_view_control_entity_id = -1;
+static int hf_cigi4_view_control_xoff = -1;
+static int hf_cigi4_view_control_yoff = -1;
+static int hf_cigi4_view_control_zoff = -1;
+static int hf_cigi4_view_control_roll = -1;
+static int hf_cigi4_view_control_pitch = -1;
+static int hf_cigi4_view_control_yaw = -1;
+
+static int  ett_cigi4_view_control_enable_flags = -1;
+
 /* CIGI3 Sensor Control */
 #define CIGI3_PACKET_SIZE_SENSOR_CONTROL 24
 static int hf_cigi3_sensor_control = -1;
@@ -2697,7 +2716,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 #define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL       24
 #define CIGI4_PACKET_SIZE_WAVE_CONTROL                              32
 #define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL    16
-#define CIGI4_PACKET_SIZE_VIEW_CONTROL                              40
 #define CIGI4_PACKET_SIZE_SENSOR_CONTROL                            32
 #define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
 #define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
@@ -5552,6 +5570,58 @@ cigi3_add_view_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 View Control */
+static gint
+cigi4_add_view_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_group_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+    
+    //Flags
+    tf = proto_tree_add_item(tree, hf_cigi4_view_control_enable_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_view_control_enable_flags);    
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_xoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_yoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_zoff_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_roll_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_pitch_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_view_control_yaw_enable, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_view_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    //reserved
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_xoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_yoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_zoff, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_roll, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_pitch, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_control_yaw, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
 /* CIGI3 Sensor Control */
 static gint
 cigi3_add_sensor_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7180,10 +7250,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_terrestrial_surface_conditions_control;
             packet_length = CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+        } */else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_view_control;
             packet_length = CIGI4_PACKET_SIZE_VIEW_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL ) {
+        } /*else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             hf_cigi4_packet = hf_cigi4_sensor_control;
             packet_length = CIGI4_PACKET_SIZE_SENSOR_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
@@ -7340,9 +7410,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_wave_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_terrestrial_surface_conditions_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+        }*/ else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL ) {
+        }/* else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             offset = cigi4_add_motion_tracker_control(tvb, cigi_packet_tree, offset);
@@ -7648,6 +7718,7 @@ cigi4_add_hat_hot_request(tvbuff_t *tvb, proto_tree *tree, gint offset)
 
     return offset;
 }
+
 
 
 /* Register the protocol with Wireshark */
@@ -9998,6 +10069,94 @@ proto_register_cigi(void)
                 "Specifies the angle of rotation of the view or view group about its Y axis after yaw has been applied", HFILL }
         },
         { &hf_cigi3_view_control_yaw,
+            { "Yaw (degrees)", "cigi.view_control.yaw",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the view or view group about its Z axis", HFILL }
+        },
+
+
+        /* CIGI4 View Control */
+        { &hf_cigi4_view_control,
+            { "View Control", "cigi.view_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "View Control Packet", HFILL }
+        },
+        { &hf_cigi4_view_control_view_id,
+            { "View ID", "cigi.view_control.view_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the view to which the contents of this packet should be applied", HFILL }
+        },
+        { &hf_cigi4_view_control_group_id,
+            { "Group ID", "cigi.view_control.group_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the view group to which the contents of this packet are applied", HFILL }
+        },
+        { &hf_cigi4_view_control_enable_flags,
+            { "Request Flags", "cigi.view_control.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_view_control_xoff_enable,
+            { "X Offset Enable", "cigi.view_control.xoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Determines whether the X Offset parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_yoff_enable,
+            { "Y Offset Enable", "cigi.view_control.yoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Determines whether the Y Offset parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_zoff_enable,
+            { "Z Offset Enable", "cigi.view_control.zoff_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Determines whether the Z Offset parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_roll_enable,
+            { "Roll Enable", "cigi.view_control.roll_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Determines whether the Roll parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_pitch_enable,
+            { "Pitch Enable", "cigi.view_control.pitch_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x10,
+                "Determines whether the Pitch parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_yaw_enable,
+            { "Yaw Enable", "cigi.view_control.yaw_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x20,
+                "Determines whether the Yaw parameter should be applied to the specified view or view group", HFILL }
+        },
+        { &hf_cigi4_view_control_entity_id,
+            { "Entity ID", "cigi.view_control.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the view or view group should be attached", HFILL }
+        },
+        { &hf_cigi4_view_control_xoff,
+            { "X Offset (m)", "cigi.view_control.xoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the position of the view eyepoint along the X axis of the entity specified by the Entity ID parameter", HFILL }
+        },
+        { &hf_cigi4_view_control_yoff,
+            { "Y Offset (m)", "cigi.view_control.yoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the position of the view eyepoint along the Y axis of the entity specified by the Entity ID parameter", HFILL }
+        },
+        { &hf_cigi4_view_control_zoff,
+            { "Z Offset (m)", "cigi.view_control.zoff",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the position of the view eyepoint along the Z axis of the entity specified by the Entity ID parameter", HFILL }
+        },
+        { &hf_cigi4_view_control_roll,
+            { "Roll (degrees)", "cigi.view_control.roll",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the view or view group about its X axis after yaw and pitch have been applied", HFILL }
+        },
+        { &hf_cigi4_view_control_pitch,
+            { "Pitch (degrees)", "cigi.view_control.pitch",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the view or view group about its Y axis after yaw has been applied", HFILL }
+        },
+        { &hf_cigi4_view_control_yaw,
             { "Yaw (degrees)", "cigi.view_control.yaw",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the angle of rotation of the view or view group about its Z axis", HFILL }
@@ -13909,7 +14068,8 @@ proto_register_cigi(void)
         &ett_cigi4_hat_hot_extended_response_flags,
         &ett_cigi4_articulated_part_control_part_enable_flags,
         &ett_cigi4_short_articulated_part_control_part_enable_flags,
-        & ett_cigi4_velocity_control_flags
+        &ett_cigi4_velocity_control_flags,
+        &ett_cigi4_view_control_enable_flags
     };
 
     /* Register the protocol name and description */
