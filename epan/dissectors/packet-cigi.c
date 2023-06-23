@@ -139,8 +139,8 @@ static gint cigi4_add_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_articulated_part_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
@@ -1353,6 +1353,23 @@ static int hf_cigi3_celestial_sphere_control_star_enable = -1;
 static int hf_cigi3_celestial_sphere_control_date_time_valid = -1;
 static int hf_cigi3_celestial_sphere_control_date = -1;
 static int hf_cigi3_celestial_sphere_control_star_intensity = -1;
+
+/* CIGI4 Celestial Sphere Control */
+#define CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL 24
+static int hf_cigi4_celestial_sphere_control = -1;
+static int hf_cigi4_celestial_sphere_control_enable_flags = -1;
+static int hf_cigi4_celestial_sphere_control_hour = -1;
+static int hf_cigi4_celestial_sphere_control_minute = -1;
+static int hf_cigi4_celestial_sphere_control_ephemeris_enable = -1;
+static int hf_cigi4_celestial_sphere_control_sun_enable = -1;
+static int hf_cigi4_celestial_sphere_control_moon_enable = -1;
+static int hf_cigi4_celestial_sphere_control_star_enable = -1;
+static int hf_cigi4_celestial_sphere_control_date_time_valid = -1;
+static int hf_cigi4_celestial_sphere_control_seconds = -1;
+static int hf_cigi4_celestial_sphere_control_date = -1;
+static int hf_cigi4_celestial_sphere_control_star_intensity = -1;
+
+static int ett_cigi4_celestial_sphere_control_flags = -1;
 
 /* CIGI3 Atmosphere Control */
 #define CIGI3_PACKET_SIZE_ATMOSPHERE_CONTROL 32
@@ -2709,7 +2726,7 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
     {0, NULL},
 };
 
-#define CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL                  24
+
 #define CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL                        32
 #define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL              48
 #define CIGI4_PACKET_SIZE_WEATHER_CONTROL                           72
@@ -5315,6 +5332,46 @@ cigi3_add_celestial_sphere_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 Celestial Sphere Control */
+static gint
+cigi4_add_celestial_sphere_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
+{
+    proto_tree* field_tree;
+    proto_item* tf;
+
+    //Enabled Flags 
+    tf = proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_enable_flags, tvb, offset, 1, cigi_byte_order);
+    field_tree = proto_item_add_subtree(tf, ett_cigi4_celestial_sphere_control_flags);
+    proto_tree_add_item(field_tree, hf_cigi4_celestial_sphere_control_ephemeris_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_celestial_sphere_control_sun_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_celestial_sphere_control_moon_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_celestial_sphere_control_star_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(field_tree, hf_cigi4_celestial_sphere_control_date_time_valid, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_hour, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_minute, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_seconds, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_date, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_celestial_sphere_control_star_intensity, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    //reserved
+    offset += 4;
+
+    return offset;
+}
+
+
+
 /* CIGI3 Atmosphere Control */
 static gint
 cigi3_add_atmosphere_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7229,10 +7286,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_VELOCITY_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_velocity_control;
             packet_length = CIGI4_PACKET_SIZE_VELOCITY_CONTROL;
-        } /* else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+        }  else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_celestial_sphere_control;
             packet_length = CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_atmosphere_control;
             packet_length = CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
@@ -7395,10 +7452,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_short_articulated_part_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_VELOCITY_CONTROL ) {
             offset = cigi4_add_velocity_control(tvb, cigi_packet_tree, offset);
-        }
-        /* else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             offset = cigi4_add_celestial_sphere_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+        }
+        /* else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
@@ -9379,6 +9436,70 @@ proto_register_cigi(void)
                 "Specifies the current date within the simulation", HFILL }
         },
         { &hf_cigi3_celestial_sphere_control_star_intensity,
+            { "Star Field Intensity (%)", "cigi.celestial_sphere_control.star_intensity",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the intensity of the star field within the sky model", HFILL }
+        },
+
+
+
+        /* CIGI3 Celestial Sphere Control */
+        { &hf_cigi4_celestial_sphere_control,
+            { "Celestial Sphere Control", "cigi.celestial_sphere_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Celestial Sphere Control Packet", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_hour,
+            { "Hour (h)", "cigi.celestial_sphere_control.hour",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the current hour of the day within the simulation", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_minute,
+            { "Minute (min)", "cigi.celestial_sphere_control.minute",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the current minute of the day within the simulation", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_enable_flags,
+            { "Flags", "cigi.rate_control.flags",
+                FT_UINT8, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_ephemeris_enable,
+            { "Ephemeris Model Enable", "cigi.celestial_sphere_control.ephemeris_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Controls whether the time of day is static or continuous", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_sun_enable,
+            { "Sun Enable", "cigi.celestial_sphere_control.sun_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Specifies whether the sun is enabled in the sky model", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_moon_enable,
+            { "Moon Enable", "cigi.celestial_sphere_control.moon_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Specifies whether the moon is enabled in the sky model", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_star_enable,
+            { "Star Field Enable", "cigi.celestial_sphere_control.star_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Specifies whether the start field is enabled in the sky model", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_date_time_valid,
+            { "Date/Time Valid", "cigi.celestial_sphere_control.date_time_valid",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x10,
+                "Specifies whether the Hour, Minute, and Date parameters are valid", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_seconds,
+            { "Second (sec)", "cigi.celestial_sphere_control.seconds",
+                FT_UINT32, BASE_DEC, NULL, 0x0,
+                "Specifies the current date within the simulation", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_date,
+            { "Date (MMDDYYYY)", "cigi.celestial_sphere_control.date",
+                FT_UINT32, BASE_DEC, NULL, 0x0,
+                "Specifies the current date within the simulation", HFILL }
+        },
+        { &hf_cigi4_celestial_sphere_control_star_intensity,
             { "Star Field Intensity (%)", "cigi.celestial_sphere_control.star_intensity",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the intensity of the star field within the sky model", HFILL }
@@ -14069,6 +14190,7 @@ proto_register_cigi(void)
         &ett_cigi4_articulated_part_control_part_enable_flags,
         &ett_cigi4_short_articulated_part_control_part_enable_flags,
         &ett_cigi4_velocity_control_flags,
+        &ett_cigi4_celestial_sphere_control_flags,
         &ett_cigi4_view_control_enable_flags
     };
 
