@@ -140,8 +140,8 @@ static gint cigi4_add_short_component_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_articulated_part_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
@@ -1382,6 +1382,20 @@ static int hf_cigi3_atmosphere_control_horiz_wind = -1;
 static int hf_cigi3_atmosphere_control_vert_wind = -1;
 static int hf_cigi3_atmosphere_control_wind_direction = -1;
 static int hf_cigi3_atmosphere_control_barometric_pressure = -1;
+
+/* CIGI4 Atmosphere Control */
+#define CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL 32
+static int hf_cigi4_atmosphere_control = -1;
+static int hf_cigi4_atmosphere_control_atmospheric_model_enable = -1;
+static int hf_cigi4_atmosphere_control_humidity = -1;
+static int hf_cigi4_atmosphere_control_air_temp = -1;
+static int hf_cigi4_atmosphere_control_visibility_range = -1;
+static int hf_cigi4_atmosphere_control_horiz_wind = -1;
+static int hf_cigi4_atmosphere_control_vert_wind = -1;
+static int hf_cigi4_atmosphere_control_wind_direction = -1;
+static int hf_cigi4_atmosphere_control_barometric_pressure = -1;
+
+
 
 /* CIGI3 Environmental Region Control */
 #define CIGI3_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL 48
@@ -2727,7 +2741,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL                        32
 #define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL              48
 #define CIGI4_PACKET_SIZE_WEATHER_CONTROL                           72
 #define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL       24
@@ -5403,6 +5416,40 @@ cigi3_add_atmosphere_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 Atmosphere Control */
+static gint
+cigi4_add_atmosphere_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_atmospheric_model_enable, tvb, offset, 1, cigi_byte_order);
+    
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_humidity, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //reserved
+    offset += 3;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_air_temp, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_visibility_range, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_horiz_wind, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_vert_wind, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_wind_direction, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_atmosphere_control_barometric_pressure, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
+
 /* CIGI3 Environmental Region Control */
 static gint
 cigi3_add_environmental_region_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7289,10 +7336,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         }  else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_celestial_sphere_control;
             packet_length = CIGI4_PACKET_SIZE_CELESTIAL_SPHERE_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_atmosphere_control;
             packet_length = CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_environmental_region_control;
             packet_length = CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
@@ -7454,10 +7501,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_velocity_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_CELESTIAL_SPHERE_CONTROL ) {
             offset = cigi4_add_celestial_sphere_control(tvb, cigi_packet_tree, offset);
-        }
-        /* else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+        }
+        /* else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             offset = cigi4_add_weather_control(tvb, cigi_packet_tree, offset);
@@ -9547,6 +9594,53 @@ proto_register_cigi(void)
                 "Specifies the global wind direction", HFILL }
         },
         { &hf_cigi3_atmosphere_control_barometric_pressure,
+            { "Global Barometric Pressure (mb or hPa)", "cigi.atmosphere_control.barometric_pressure",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global atmospheric pressure", HFILL }
+        },
+
+        /* CIGI4 Atmosphere Control */
+        {&hf_cigi4_atmosphere_control,
+            { "Atmosphere Control", "cigi.atmosphere_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Atmosphere Control Packet", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_atmospheric_model_enable,
+            { "Atmospheric Model Enable", "cigi.atmosphere_control.atmospheric_model_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether the IG should use an atmospheric model to determine spectral radiances for sensor applications", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_humidity,
+            { "Global Humidity (%)", "cigi.atmosphere_control.humidity",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the global humidity of the environment", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_air_temp,
+            { "Global Air Temperature (degrees C)", "cigi.atmosphere_control.air_temp",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global air temperature of the environment", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_visibility_range,
+            { "Global Visibility Range (m)", "cigi.atmosphere_control.visibility_range",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global visibility range through the atmosphere", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_horiz_wind,
+            { "Global Horizontal Wind Speed (m/s)", "cigi.atmosphere_control.horiz_wind",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global wind speed parallel to the ellipsoid-tangential reference plane", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_vert_wind,
+            { "Global Vertical Wind Speed (m/s)", "cigi.atmosphere_control.vert_wind",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global vertical wind speed", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_wind_direction,
+            { "Global Wind Direction (degrees)", "cigi.atmosphere_control.wind_direction",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the global wind direction", HFILL }
+        },
+        { &hf_cigi4_atmosphere_control_barometric_pressure,
             { "Global Barometric Pressure (mb or hPa)", "cigi.atmosphere_control.barometric_pressure",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the global atmospheric pressure", HFILL }
