@@ -147,8 +147,8 @@ static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_trajectory_definition(tvbuff_t*, proto_tree*, gint);
@@ -1810,6 +1810,46 @@ static const true_false_string cigi3_sensor_control_track_white_black_tfs = {
 };
 
 
+/* CIGI4 Sensor Control */
+#define CIGI4_PACKET_SIZE_SENSOR_CONTROL 32
+static int hf_cigi4_sensor_control = -1;
+static int hf_cigi4_sensor_control_view_id = -1;
+static int hf_cigi4_sensor_control_sensor_id = -1;
+static int hf_cigi4_sensor_control_sensor_on_off = -1;
+static int hf_cigi4_sensor_control_polarity = -1;
+static int hf_cigi4_sensor_control_line_dropout_enable = -1;
+static int hf_cigi4_sensor_control_auto_gain = -1;
+static int hf_cigi4_sensor_control_track_white_black = -1;
+static int hf_cigi4_sensor_control_track_mode = -1;
+static int hf_cigi4_sensor_control_response_type = -1;
+static int hf_cigi4_sensor_control_gain = -1;
+static int hf_cigi4_sensor_control_level = -1;
+static int hf_cigi4_sensor_control_ac_coupling = -1;
+static int hf_cigi4_sensor_control_noise = -1;
+
+static const value_string cigi4_sensor_control_track_mode_vals[] = {
+    {0, "Off"},
+    {1, "Force Correlate"},
+    {2, "Scene"},
+    {3, "Target"},
+    {4, "Ship"},
+    {5, "Defined by IG"},
+    {6, "Defined by IG"},
+    {7, "Defined by IG"},
+    {0, NULL},
+};
+
+static const true_false_string cigi4_sensor_control_polarity_tfs = {
+    "Black hot",
+    "White hot"
+};
+
+static const true_false_string cigi4_sensor_control_track_white_black_tfs = {
+    "Black",
+    "White"
+};
+
+
 
 /* CIGI3 Motion Tracker Control */
 #define CIGI3_PACKET_SIZE_MOTION_TRACKER_CONTROL 8
@@ -2913,7 +2953,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_SENSOR_CONTROL                            32
 #define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
 #define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
 #define CIGI4_PACKET_SIZE_ACCELERATION_CONTROL                      32
@@ -6130,6 +6169,42 @@ cigi3_add_sensor_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 Sensor Control */
+static gint
+cigi4_add_sensor_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_sensor_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_sensor_on_off, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_polarity, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_line_dropout_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_auto_gain, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_track_white_black, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_track_mode, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_response_type, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_view_id, tvb, offset, 2, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_gain, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_level, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_ac_coupling, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_sensor_control_noise, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 Motion Tracker Control */
 static gint
 cigi3_add_motion_tracker_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7725,10 +7800,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_view_control;
             packet_length = CIGI4_PACKET_SIZE_VIEW_CONTROL;
-        } /*else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
+        } else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             hf_cigi4_packet = hf_cigi4_sensor_control;
             packet_length = CIGI4_PACKET_SIZE_SENSOR_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_motion_tracker_control;
             packet_length = CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
@@ -7883,9 +7958,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_terrestrial_surface_conditions_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
-        }/* else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
+        } else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+        }/* else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             offset = cigi4_add_motion_tracker_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
             offset = cigi4_add_earth_reference_model_definition(tvb, cigi_packet_tree, offset);
@@ -11243,6 +11318,79 @@ proto_register_cigi(void)
                 "Specifies the AC coupling decay constant for the sensor display", HFILL }
         },
         { &hf_cigi3_sensor_control_noise,
+            { "Noise", "cigi.sensor_control.noise",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the amount of detector noise for the sensor", HFILL }
+        },
+
+
+        /* CIGI4 Sensor Control */
+        { &hf_cigi4_sensor_control,
+            { "Sensor Control", "cigi.sensor_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Sensor Control Packet", HFILL }
+        },
+        { &hf_cigi4_sensor_control_view_id,
+            { "View ID", "cigi.sensor_control.view_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Identifies the view to which the specified sensor is assigned", HFILL }
+        },
+        { &hf_cigi4_sensor_control_sensor_id,
+            { "Sensor ID", "cigi.sensor_control.sensor_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the sensor to which the data in this packet are applied", HFILL }
+        },
+        { &hf_cigi4_sensor_control_sensor_on_off,
+            { "Sensor On/Off", "cigi.sensor_control.sensor_on_off",
+                FT_BOOLEAN, 8, TFS(&tfs_on_off), 0x01,
+                "Specifies whether the sensor is turned on or off", HFILL }
+        },
+        { &hf_cigi4_sensor_control_polarity,
+            { "Polarity", "cigi.sensor_control.polarity",
+                FT_BOOLEAN, 8, TFS(&cigi3_sensor_control_polarity_tfs), 0x02,
+                "Specifies whether the sensor shows white hot or black hot", HFILL }
+        },
+        { &hf_cigi4_sensor_control_line_dropout_enable,
+            { "Line-by-Line Dropout Enable", "cigi.sensor_control.line_dropout_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Specifies whether line-by-line dropout is enabled", HFILL }
+        },
+        { &hf_cigi4_sensor_control_auto_gain,
+            { "Automatic Gain", "cigi.sensor_control.auto_gain",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Specifies whether the sensor automatically adjusts the gain value to optimize the brightness and contrast of the sensor display", HFILL }
+        },
+        { &hf_cigi4_sensor_control_track_white_black,
+            { "Track White/Black", "cigi.sensor_control.track_white_black",
+                FT_BOOLEAN, 8, TFS(&cigi3_sensor_control_track_white_black_tfs), 0x10,
+                "Specifies whether the sensor tracks white or black", HFILL }
+        },
+        { &hf_cigi4_sensor_control_track_mode,
+            { "Track Mode", "cigi.sensor_control.track_mode",
+                FT_UINT8, BASE_DEC, VALS(cigi3_sensor_control_track_mode_vals), 0xe0,
+                "Specifies which track mode the sensor should use", HFILL }
+        },
+        { &hf_cigi4_sensor_control_response_type,
+            { "Response Type", "cigi.sensor_control.response_type",
+                FT_BOOLEAN, 8, TFS(&extended_normal_tfs), 0x01,
+                "Specifies whether the IG should return a Sensor Response packet or a Sensor Extended Response packet", HFILL }
+        },
+        { &hf_cigi4_sensor_control_gain,
+            { "Gain", "cigi.sensor_control.gain",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the contrast for the sensor display", HFILL }
+        },
+        { &hf_cigi4_sensor_control_level,
+            { "Level", "cigi.sensor_control.level",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the brightness for the sensor display", HFILL }
+        },
+        { &hf_cigi4_sensor_control_ac_coupling,
+            { "AC Coupling (microseconds)", "cigi.sensor_control.ac_coupling",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the AC coupling decay constant for the sensor display", HFILL }
+        },
+        { &hf_cigi4_sensor_control_noise,
             { "Noise", "cigi.sensor_control.noise",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the amount of detector noise for the sensor", HFILL }
