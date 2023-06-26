@@ -149,9 +149,9 @@ static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);/*
+static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_trajectory_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_acceleration_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_view_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_collision_detection_segment_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_collision_detection_volume_definition(tvbuff_t*, proto_tree*, gint);*/
@@ -1898,6 +1898,13 @@ static int hf_cigi3_earth_reference_model_definition_erm_enable = -1;
 static int hf_cigi3_earth_reference_model_definition_equatorial_radius = -1;
 static int hf_cigi3_earth_reference_model_definition_flattening = -1;
 
+/* CIGI4 Earth Reference Model Definition */
+#define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION 24
+static int hf_cigi4_earth_reference_model_definition = -1;
+static int hf_cigi4_earth_reference_model_definition_erm_enable = -1;
+static int hf_cigi4_earth_reference_model_definition_equatorial_radius = -1;
+static int hf_cigi4_earth_reference_model_definition_flattening = -1;
+
 /* CIGI3 Trajectory Definition */
 #define CIGI3_PACKET_SIZE_TRAJECTORY_DEFINITION 24
 static int hf_cigi3_trajectory_definition = -1;
@@ -1907,6 +1914,26 @@ static int hf_cigi3_trajectory_definition_acceleration_y = -1;
 static int hf_cigi3_trajectory_definition_acceleration_z = -1;
 static int hf_cigi3_trajectory_definition_retardation_rate = -1;
 static int hf_cigi3_trajectory_definition_terminal_velocity = -1;
+
+
+/* CIGI4 Acceleration Control */
+#define CIGI4_PACKET_SIZE_ACCELERATION_CONTROL 32
+static int hf_cigi4_acceleration_control = -1;
+static int hf_cigi4_acceleration_control_entity_id = -1;
+static int hf_cigi4_acceleration_control_articulated_part_id = -1;
+static int hf_cigi4_acceleration_control_apply_to_part = -1;
+static int hf_cigi4_acceleration_control_coord_system = -1;
+static int hf_cigi4_acceleration_control_acceleration_x = -1;
+static int hf_cigi4_acceleration_control_acceleration_y = -1;
+static int hf_cigi4_acceleration_control_acceleration_z = -1;
+static int hf_cigi4_acceleration_control_acceleration_roll = -1;
+static int hf_cigi4_acceleration_control_acceleration_pitch = -1;
+static int hf_cigi4_acceleration_control_acceleration_yaw = -1;
+
+static const true_false_string cigi4_trajectory_coord_sys_select_vals = {
+    "Local",
+    "World/Parent"
+};
 
 /* CIGI3 View Definition */
 #define CIGI3_PACKET_SIZE_VIEW_DEFINITION 32
@@ -2973,8 +3000,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
-#define CIGI4_PACKET_SIZE_ACCELERATION_CONTROL                      32
 #define CIGI4_PACKET_SIZE_VIEW_DEFINITION                           40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION    40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION     48
@@ -6292,6 +6317,22 @@ cigi3_add_earth_reference_model_definition(tvbuff_t *tvb, proto_tree *tree, gint
     return offset;
 }
 
+/* CIGI4 Earth Reference Model Definition */
+static gint
+cigi4_add_earth_reference_model_definition(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_earth_reference_model_definition_erm_enable, tvb, offset, 1, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_earth_reference_model_definition_equatorial_radius, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_earth_reference_model_definition_flattening, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 Trajectory Definition */
 static gint
 cigi3_add_trajectory_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -6316,6 +6357,42 @@ cigi3_add_trajectory_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
 
     return offset;
 }
+
+/* CIGI4 Acceleraion Control */
+static gint
+cigi4_add_acceleration_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_entity_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_articulated_part_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_apply_to_part, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_coord_system, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_x, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_y, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_z, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_roll, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_pitch, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_acceleration_control_acceleration_yaw, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
 
 /* CIGI3 View Definition */
 static gint
@@ -7851,13 +7928,13 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_motion_tracker_control;
             packet_length = CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_earth_reference_model_definition;
             packet_length = CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION;
-        } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
-            hf_cigi4_packet = hf_cigi4_trajectory_definition;
-            packet_length = CIGI4_PACKET_SIZE_TRAJECTORY_DEFINITION;
-        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ACCELERATION_CONTROL ) {
+            hf_cigi4_packet = hf_cigi4_acceleration_control;
+            packet_length = CIGI4_PACKET_SIZE_ACCELERATION_CONTROL;
+        } /*else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_view_definition;
             packet_length = CIGI4_PACKET_SIZE_VIEW_DEFINITION;
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
@@ -8007,11 +8084,11 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             offset = cigi4_add_motion_tracker_control(tvb, cigi_packet_tree, offset);
-        }/* else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
             offset = cigi4_add_earth_reference_model_definition(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
-            offset = cigi4_add_trajectory_definition(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ACCELERATION_CONTROL ) {
+            offset = cigi4_add_acceleration_control(tvb, cigi_packet_tree, offset);
+        }/* else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
             offset = cigi4_add_view_definition(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
             offset = cigi4_add_collision_detection_segment_definition(tvb, cigi_packet_tree, offset);
@@ -11587,6 +11664,28 @@ proto_register_cigi(void)
                 "Specifies the flattening of the ellipsoid", HFILL }
         },
 
+        /* CIGI4 Earth Reference Model Definition */
+        { &hf_cigi4_earth_reference_model_definition,
+            { "Earth Reference Model Definition", "cigi.earth_ref_model_def",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Earth Reference Model Definition Packet", HFILL }
+        },
+        { &hf_cigi4_earth_reference_model_definition_erm_enable,
+            { "Custom ERM Enable", "cigi.earth_ref_model_def.erm_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether the IG should use the Earth Reference Model defined by this packet", HFILL }
+        },
+        { &hf_cigi4_earth_reference_model_definition_equatorial_radius,
+            { "Equatorial Radius (m)", "cigi.earth_ref_model_def.equatorial_radius",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the semi-major axis of the ellipsoid", HFILL }
+        },
+        { &hf_cigi4_earth_reference_model_definition_flattening,
+            { "Flattening (m)", "cigi.earth_ref_model_def.flattening",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the flattening of the ellipsoid", HFILL }
+        },
+
         /* CIGI2 Trajectory Definition */
         { &hf_cigi2_trajectory_definition,
             { "Trajectory Definition", "cigi.trajectory_def",
@@ -11651,6 +11750,66 @@ proto_register_cigi(void)
                 "Specifies the maximum velocity the entity can sustain", HFILL }
         },
 
+
+        /* CIGI4 Acceleration Control */
+        { &hf_cigi4_acceleration_control,
+            { "Trajectory Definition", "cigi.acceleration_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Trajectory Definition Packet", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_entity_id,
+            { "Entity ID", "cigi.acceleration_control.entity_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Identifies the entity for which the trajectory is defined", HFILL }
+        },
+
+        { &hf_cigi4_acceleration_control_articulated_part_id,
+            { "Articulated Part ID", "cigi.acceleration_control.part_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the articulated part to which the acceleration may be applied", HFILL }
+        },
+
+        { &hf_cigi4_acceleration_control_apply_to_part,
+            { "Apply to Articulated Part", "cigi.acceleration_control.apply_to_part",
+                FT_BOOLEAN, 8, TFS(&tfs_true_false), 0x01,
+                "Indicates whether the acceleration may be applied to an articulated part or an entity", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_coord_system,
+            { "Sequence Direction", "cigi.acceleration_control.coord_system",
+                FT_BOOLEAN, 8, TFS(&cigi4_trajectory_coord_sys_select_vals), 0x02,
+                "Indicates the reference coordinate system to which the linear and angular accelerations may be applied", HFILL }
+        },
+
+        { &hf_cigi4_acceleration_control_acceleration_x,
+            { "Acceleration X (m/s^2)", "cigi.acceleration_control.acceleration_x",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the X component of the acceleration vector", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_acceleration_y,
+            { "Acceleration Y (m/s^2)", "cigi.acceleration_control.acceleration_y",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the Y component of the acceleration vector", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_acceleration_z,
+            { "Acceleration Z (m/s^2)", "cigi.acceleration_control.acceleration_z",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the Z component of the acceleration vector", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_acceleration_roll,
+            { "Roll Angular Acceleration (deg/s^2)", "cigi.acceleration_control.acceleration_roll",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its X axis after yaw and pitch have been applied.", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_acceleration_pitch,
+            { "Terminal Velocity (deg/s)", "cigi.acceleration_control.acceleration_pitch",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its Y axis after yaw and pitch have been applied", HFILL }
+        },
+        { &hf_cigi4_acceleration_control_acceleration_yaw,
+            { "Terminal Velocity (deg/s)", "cigi.acceleration_control.acceleration_yaw",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the angle of rotation of the articulated part submodel about its Z axis after yaw and pitch have been applied", HFILL }
+        },
         /* CIGI2 Special Effect Definition */
         { &hf_cigi2_special_effect_definition,
             { "Special Effect Definition", "cigi.special_effect_def",
