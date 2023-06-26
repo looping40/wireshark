@@ -144,9 +144,9 @@ static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);/*
+static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);*/
+static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
@@ -1665,7 +1665,7 @@ static const value_string cigi3_wave_control_breaker_type_vals[] = {
 };
 
 /* CIGI4 Wave Control */
-#define CIGI3_PACKET_SIZE_WAVE_CONTROL 32
+#define CIGI4_PACKET_SIZE_WAVE_CONTROL 32
 static int hf_cigi4_wave_control = -1;
 static int hf_cigi4_wave_control_entity_region_id = -1;
 static int hf_cigi4_wave_control_wave_id = -1;
@@ -1709,6 +1709,25 @@ static const value_string cigi3_terrestrial_surface_conditions_control_scope_val
     {2, "Entity"},
     {0, NULL},
 };
+
+/* CIGI4 Terrestrial Surface Conditions Control */
+#define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL 16
+static int hf_cigi4_terrestrial_surface_conditions_control = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_entity_region_id = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_surface_condition_id = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_surface_condition_enable = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_scope = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_severity = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_coverage = -1;
+static int hf_cigi4_terrestrial_surface_conditions_control_condition_id = -1;
+
+static const value_string cigi4_terrestrial_surface_conditions_control_scope_vals[] = {
+    {0, "Global"},
+    {1, "Regional"},
+    {2, "Entity"},
+    {0, NULL},
+};
+
 
 /* CIGI3 View Control */
 #define CIGI3_PACKET_SIZE_VIEW_CONTROL 32
@@ -2894,7 +2913,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL    16
 #define CIGI4_PACKET_SIZE_SENSOR_CONTROL                            32
 #define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
 #define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
@@ -5961,6 +5979,27 @@ cigi3_add_terrestrial_surface_conditions_control(tvbuff_t *tvb, proto_tree *tree
     return offset;
 }
 
+/* CIGI4 Terrestrial Surface Conditions Control */
+static gint
+cigi4_add_terrestrial_surface_conditions_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_entity_region_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_surface_condition_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_scope, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_severity, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_coverage, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_terrestrial_surface_conditions_control_condition_id, tvb, offset, 2, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 View Control */
 static gint
 cigi3_add_view_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7680,10 +7719,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_wave_control;
             packet_length = CIGI4_PACKET_SIZE_WAVE_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_terrestrial_surface_conditions_control;
             packet_length = CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL;
-        } */else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_view_control;
             packet_length = CIGI4_PACKET_SIZE_VIEW_CONTROL;
         } /*else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
@@ -7840,9 +7879,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_maritime_surface_conditions_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
             offset = cigi4_add_wave_control(tvb, cigi_packet_tree, offset);
-        } /*else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_terrestrial_surface_conditions_control(tvb, cigi_packet_tree, offset);
-        }*/ else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
         }/* else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
@@ -10773,6 +10812,50 @@ proto_register_cigi(void)
                 FT_UINT8, BASE_DEC, NULL, 0x0,
                 "Determines the degree of coverage of the specified surface contaminant", HFILL }
         },
+
+
+        /* Terrestrial Surface Conditions Control */
+        { &hf_cigi4_terrestrial_surface_conditions_control,
+            { "Terrestrial Surface Conditions Control", "cigi.terrestrial_surface_conditions_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Terrestrial Surface Conditions Control Packet", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_entity_region_id,
+            { "Entity ID/Region ID", "cigi.terrestrial_surface_conditions_control.entity_region_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the environmental entity to which the surface condition attributes in this packet are applied", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_surface_condition_id,
+            { "Surface Condition ID", "cigi.terrestrial_surface_conditions_control.surface_condition_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Identifies a surface condition or contaminant", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_surface_condition_enable,
+            { "Surface Condition Enable", "cigi.terrestrial_surface_conditions_control.surface_condition_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether the surface condition attribute identified by the Surface Condition ID parameter should be enabled", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_scope,
+            { "Scope", "cigi.terrestrial_surface_conditions_control.scope",
+                FT_UINT8, BASE_DEC, VALS(cigi4_terrestrial_surface_conditions_control_scope_vals), 0x06,
+                "Determines whether the specified surface conditions are applied globally, regionally, or to an environmental entity", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_severity,
+            { "Severity (0-31)", "cigi.terrestrial_surface_conditions_control.severity",
+                FT_UINT8, BASE_DEC, NULL, 0xf8,
+                "determines the degree of severity for the specified surface contaminant(s)", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_coverage,
+            { "Coverage (%)", "cigi.terrestrial_surface_conditions_control.coverage",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Determines the degree of coverage for the specified surface contaminant(s)", HFILL }
+        },
+        { &hf_cigi4_terrestrial_surface_conditions_control_condition_id,
+            { "Condition ID", "cigi.terrestrial_surface_conditions_control.condition_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Determines a surface condition or contaminant", HFILL }
+        },
+
 
         /* CIGI2 View Control */
         { &hf_cigi2_view_control,
