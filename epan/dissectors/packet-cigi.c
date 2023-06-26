@@ -141,8 +141,8 @@ static gint cigi4_add_articulated_part_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
@@ -1395,8 +1395,6 @@ static int hf_cigi4_atmosphere_control_vert_wind = -1;
 static int hf_cigi4_atmosphere_control_wind_direction = -1;
 static int hf_cigi4_atmosphere_control_barometric_pressure = -1;
 
-
-
 /* CIGI3 Environmental Region Control */
 #define CIGI3_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL 48
 static int hf_cigi3_environmental_region_control = -1;
@@ -1425,6 +1423,37 @@ static const true_false_string cigi3_environmental_region_control_merge_properti
     "Merge",
     "Use Last"
 };
+
+
+/* CIGI4 Environmental Region Control */
+#define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL 48
+static int hf_cigi4_environmental_region_control = -1;
+static int hf_cigi4_environmental_region_control_region_id = -1;
+static int hf_cigi4_environmental_region_control_region_state = -1;
+static int hf_cigi4_environmental_region_control_merge_weather = -1;
+static int hf_cigi4_environmental_region_control_merge_aerosol = -1;
+static int hf_cigi4_environmental_region_control_merge_maritime = -1;
+static int hf_cigi4_environmental_region_control_merge_terrestrial = -1;
+static int hf_cigi4_environmental_region_control_lat = -1;
+static int hf_cigi4_environmental_region_control_lon = -1;
+static int hf_cigi4_environmental_region_control_size_x = -1;
+static int hf_cigi4_environmental_region_control_size_y = -1;
+static int hf_cigi4_environmental_region_control_corner_radius = -1;
+static int hf_cigi4_environmental_region_control_rotation = -1;
+static int hf_cigi4_environmental_region_control_transition_perimeter = -1;
+
+static const value_string cigi4_environmental_region_control_region_state_vals[] = {
+    {0, "Inactive"},
+    {1, "Active"},
+    {2, "Destroyed"},
+    {0, NULL},
+};
+
+static const true_false_string cigi4_environmental_region_control_merge_properties_tfs = {
+    "Merge",
+    "Use Last"
+};
+
 
 /* CIGI3 Weather Control */
 #define CIGI3_PACKET_SIZE_WEATHER_CONTROL 56
@@ -5488,6 +5517,48 @@ cigi3_add_environmental_region_control(tvbuff_t *tvb, proto_tree *tree, gint off
     return offset;
 }
 
+
+/* CIGI4 Environmental Region Control */
+static gint
+cigi4_add_environmental_region_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+   
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_region_state, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_merge_weather, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_merge_aerosol, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_merge_maritime, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_merge_terrestrial, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_region_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_lat, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_lon, tvb, offset, 8, cigi_byte_order);
+    offset += 8;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_size_x, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_size_y, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_corner_radius, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_rotation, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_environmental_region_control_transition_perimeter, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
+
 /* CIGI3 Weather Control */
 static gint
 cigi3_add_weather_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7339,10 +7410,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_atmosphere_control;
             packet_length = CIGI4_PACKET_SIZE_ATMOSPHERE_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_environmental_region_control;
             packet_length = CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_weather_control;
             packet_length = CIGI4_PACKET_SIZE_WEATHER_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
@@ -7503,10 +7574,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_celestial_sphere_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ATMOSPHERE_CONTROL ) {
             offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
-        }
-        /* else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             offset = cigi4_add_weather_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_maritime_surface_conditions_control(tvb, cigi_packet_tree, offset);
@@ -9780,6 +9850,79 @@ proto_register_cigi(void)
                 "Specifies the yaw angle of the rounded rectangle", HFILL }
         },
         { &hf_cigi3_environmental_region_control_transition_perimeter,
+            { "Transition Perimeter (m)", "cigi.env_region_control.transition_perimeter",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the width of the transition perimeter around the environmental region", HFILL }
+        },
+
+
+        /* CIGI4 Environmental Region Control */
+        { &hf_cigi4_environmental_region_control,
+            { "Environmental Region Control", "cigi.env_region_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Environmental Region Control Packet", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_region_id,
+            { "Region ID", "cigi.env_region_control.region_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the environmental region to which the data in this packet will be applied", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_region_state,
+            { "Region State", "cigi.env_region_control.region_state",
+                FT_UINT8, BASE_DEC, VALS(cigi4_environmental_region_control_region_state_vals), 0x03,
+                "Specifies whether the region should be active or destroyed", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_merge_weather,
+            { "Merge Weather Properties", "cigi.env_region_control.merge_weather",
+                FT_BOOLEAN, 8, TFS(&cigi4_environmental_region_control_merge_properties_tfs), 0x04,
+                "Specifies whether atmospheric conditions within this region should be merged with those of other regions within areas of overlap", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_merge_aerosol,
+            { "Merge Aerosol Concentrations", "cigi.env_region_control.merge_aerosol",
+                FT_BOOLEAN, 8, TFS(&cigi4_environmental_region_control_merge_properties_tfs), 0x08,
+                "Specifies whether the concentrations of aerosols found within this region should be merged with those of other regions within areas of overlap", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_merge_maritime,
+            { "Merge Maritime Surface Conditions", "cigi.env_region_control.merge_maritime",
+                FT_BOOLEAN, 8, TFS(&cigi4_environmental_region_control_merge_properties_tfs), 0x10,
+                "Specifies whether the maritime surface conditions found within this region should be merged with those of other regions within areas of overlap", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_merge_terrestrial,
+            { "Merge Terrestrial Surface Conditions", "cigi.env_region_control.merge_terrestrial",
+                FT_BOOLEAN, 8, TFS(&cigi4_environmental_region_control_merge_properties_tfs), 0x20,
+                "Specifies whether the terrestrial surface conditions found within this region should be merged with those of other regions within areas of overlap", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_lat,
+            { "Latitude (degrees)", "cigi.env_region_control.lat",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the geodetic latitude of the center of the rounded rectangle", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_lon,
+            { "Longitude (degrees)", "cigi.env_region_control.lon",
+                FT_DOUBLE, BASE_NONE, NULL, 0x0,
+                "Specifies the geodetic longitude of the center of the rounded rectangle", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_size_x,
+            { "Size X (m)", "cigi.env_region_control.size_x",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the length of the environmental region along its X axis at the geoid surface", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_size_y,
+            { "Size Y (m)", "cigi.env_region_control.size_y",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the length of the environmental region along its Y axis at the geoid surface", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_corner_radius,
+            { "Corner Radius (m)", "cigi.env_region_control.corner_radius",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the radius of the corner of the rounded rectangle", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_rotation,
+            { "Rotation (degrees)", "cigi.env_region_control.rotation",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the yaw angle of the rounded rectangle", HFILL }
+        },
+        { &hf_cigi4_environmental_region_control_transition_perimeter,
             { "Transition Perimeter (m)", "cigi.env_region_control.transition_perimeter",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the width of the transition perimeter around the environmental region", HFILL }
