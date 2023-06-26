@@ -463,6 +463,9 @@ LograyMainWindow::LograyMainWindow(QWidget *parent) :
     main_ui_->goToGo->setAttribute(Qt::WA_MacSmallSize, true);
     main_ui_->goToCancel->setAttribute(Qt::WA_MacSmallSize, true);
 
+    connect(main_ui_->goToGo, &QPushButton::pressed, this, &LograyMainWindow::goToGoClicked);
+    connect(main_ui_->goToCancel, &QPushButton::pressed, this, &LograyMainWindow::goToCancelClicked);
+
     main_ui_->actionEditPreferences->setMenuRole(QAction::PreferencesRole);
 
 #endif // Q_OS_MAC
@@ -608,6 +611,7 @@ main_ui_->goToLineEdit->setValidator(goToLineQiv);
     connectCaptureMenuActions();
     connectAnalyzeMenuActions();
     connectStatisticsMenuActions();
+    connectHelpMenuActions();
 
     connect(packet_list_, SIGNAL(packetDissectionChanged()),
             this, SLOT(redissectPackets()));
@@ -864,9 +868,9 @@ void LograyMainWindow::keyPressEvent(QKeyEvent *event) {
     if (mainApp->focusWidget() == main_ui_->goToLineEdit) {
         if (event->modifiers() == Qt::NoModifier) {
             if (event->key() == Qt::Key_Escape) {
-                on_goToCancel_clicked();
+                goToCancelClicked();
             } else if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) {
-                on_goToGo_clicked();
+                goToGoClicked();
             }
         }
         return; // goToLineEdit didn't want it and we don't either.
@@ -2742,8 +2746,7 @@ void LograyMainWindow::externalMenuHelper(ext_menu_t * menu, QMenu  * subMenu, g
             itemAction = subMenu->addAction(item->name);
             itemAction->setData(QVariant::fromValue(static_cast<void *>(item)));
             itemAction->setText(item->label);
-            connect(itemAction, SIGNAL(triggered()),
-                    this, SLOT(externalMenuItem_triggered()));
+            connect(itemAction, &QAction::triggered, this, &LograyMainWindow::externalMenuItemTriggered);
         }
 
         /* Iterate Loop */
