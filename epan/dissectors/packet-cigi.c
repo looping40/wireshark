@@ -1522,6 +1522,79 @@ static const value_string cigi3_weather_control_scope_vals[] = {
     {0, NULL},
 };
 
+
+/* CIGI4 Weather Control */
+#define CIGI4_PACKET_SIZE_WEATHER_CONTROL 72
+static int hf_cigi4_weather_control = -1;
+static int hf_cigi4_weather_control_entity_region_id = -1;
+static int hf_cigi4_weather_control_layer_id = -1;
+static int hf_cigi4_weather_control_humidity = -1;
+static int hf_cigi4_weather_control_flags = -1;
+static int hf_cigi4_weather_control_weather_enable = -1;
+static int hf_cigi4_weather_control_scud_enable = -1;
+static int hf_cigi4_weather_control_random_winds_enable = -1;
+static int hf_cigi4_weather_control_random_lightning_enable = -1;
+static int hf_cigi4_weather_control_cloud_type = -1;
+static int hf_cigi4_weather_control_scope = -1;
+static int hf_cigi4_weather_control_severity = -1;
+static int hf_cigi4_weather_control_top_scud_enable = -1;
+static int hf_cigi4_weather_control_air_temp = -1;
+static int hf_cigi4_weather_control_visibility_range = -1;
+static int hf_cigi4_weather_control_scud_frequency = -1;
+static int hf_cigi4_weather_control_coverage = -1;
+static int hf_cigi4_weather_control_base_elevation = -1;
+static int hf_cigi4_weather_control_thickness = -1;
+static int hf_cigi4_weather_control_transition_band = -1;
+static int hf_cigi4_weather_control_horiz_wind = -1;
+static int hf_cigi4_weather_control_vert_wind = -1;
+static int hf_cigi4_weather_control_wind_direction = -1;
+static int hf_cigi4_weather_control_barometric_pressure = -1;
+static int hf_cigi4_weather_control_aerosol_concentration = -1;
+static int hf_cigi4_weather_control_top_scud_freq = -1;
+static int hf_cigi4_weather_control_top_transition_band = -1;
+
+static const value_string cigi4_weather_control_layer_id_vals[] = {
+    {0, "Ground Fog"},
+    {1, "Cloud Layer 1"},
+    {2, "Cloud Layer 2"},
+    {3, "Cloud Layer 3"},
+    {4, "Rain"},
+    {5, "Snow"},
+    {6, "Sleet"},
+    {7, "Hail"},
+    {8, "Sand"},
+    {9, "Dust"},
+    {0, NULL},
+};
+
+static const value_string cigi4_weather_control_cloud_type_vals[] = {
+    {0, "None"},
+    {1, "Altocumulus"},
+    {2, "Altostratus"},
+    {3, "Cirrocumulus"},
+    {4, "Cirrostratus"},
+    {5, "Cirrus"},
+    {6, "Cumulonimbus"},
+    {7, "Cumulus"},
+    {8, "Nimbostratus"},
+    {9, "Stratocumulus"},
+    {10, "Stratus"},
+    {11, "Other"},
+    {12, "Other"},
+    {13, "Other"},
+    {14, "Other"},
+    {15, "Other"},
+    {0, NULL},
+};
+
+static const value_string cigi4_weather_control_scope_vals[] = {
+    {0, "Global"},
+    {1, "Regional"},
+    {2, "Entity"},
+    {0, NULL},
+};
+
+
 /* CIGI3 Maritime Surface Conditions Control */
 #define CIGI3_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL 24
 static int hf_cigi3_maritime_surface_conditions_control = -1;
@@ -2770,8 +2843,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL              48
-#define CIGI4_PACKET_SIZE_WEATHER_CONTROL                           72
 #define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL       24
 #define CIGI4_PACKET_SIZE_WAVE_CONTROL                              32
 #define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL    16
@@ -5622,6 +5693,81 @@ cigi3_add_weather_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+
+/* CIGI4 Weather Control */
+static gint
+cigi4_add_weather_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_weather_control_layer_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_humidity, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    //flags
+    proto_tree_add_item(tree, hf_cigi4_weather_control_weather_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_scud_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_random_winds_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_random_lightning_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_cloud_type, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_scope, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_severity, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_weather_control_top_scud_enable, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_entity_region_id, tvb, offset, 2, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_air_temp, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_visibility_range, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_scud_frequency, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_coverage, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_base_elevation, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_thickness, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_transition_band, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_horiz_wind, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_vert_wind, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_wind_direction, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_barometric_pressure, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_aerosol_concentration, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_top_scud_freq, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_weather_control_top_transition_band, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    //reserved
+    offset += 4;
+
+    return offset;
+}
+
 /* CIGI3 Maritime Surface Conditions Control */
 static gint
 cigi3_add_maritime_surface_conditions_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7413,10 +7559,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_environmental_region_control;
             packet_length = CIGI4_PACKET_SIZE_ENVIRONMENTAL_REGION_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_weather_control;
             packet_length = CIGI4_PACKET_SIZE_WEATHER_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_maritime_surface_conditions_control;
             packet_length = CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
@@ -7576,9 +7722,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_atmosphere_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ENVIRONMENTAL_REGION_CONTROL ) {
             offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
-        } /*else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             offset = cigi4_add_weather_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_maritime_surface_conditions_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
             offset = cigi4_add_wave_control(tvb, cigi_packet_tree, offset);
@@ -10125,6 +10271,146 @@ proto_register_cigi(void)
             { "Aerosol Concentration (g/m^3)", "cigi.weather_control.aerosol_concentration",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the concentration of water, smoke, dust, or other particles suspended in the air", HFILL }
+        },
+
+
+        /* CIGI4 Weather Control */
+        { &hf_cigi4_weather_control,
+            { "Weather Control", "cigi.weather_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Weather Control Packet", HFILL }
+        },
+        { &hf_cigi4_weather_control_entity_region_id,
+            { "Entity ID/Region ID", "cigi.weather_control.entity_region_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the weather attributes in this packet are applied", HFILL }
+        },
+        { &hf_cigi4_weather_control_layer_id,
+            { "Layer ID", "cigi.weather_control.layer_id",
+                FT_UINT8, BASE_DEC, VALS(cigi3_weather_control_layer_id_vals), 0x0,
+                "Specifies the weather layer to which the data in this packet are applied", HFILL }
+        },
+        { &hf_cigi4_weather_control_flags,
+            { "Request Flags", "cigi.weather_control.flags",
+                FT_UINT16, BASE_HEX, NULL, 0x0,
+                NULL, HFILL }
+        },
+        { &hf_cigi4_weather_control_humidity,
+            { "Humidity (%)", "cigi.weather_control.humidity",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the humidity within the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_weather_enable,
+            { "Weather Enable", "cigi.weather_control.weather_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether a weather layer and its atmospheric effects are enabled", HFILL }
+        },
+        { &hf_cigi4_weather_control_scud_enable,
+            { "Scud Enable", "cigi.weather_control.scud_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Specifies whether weather layer produces scud effects within its transition bands", HFILL }
+        },
+        { &hf_cigi4_weather_control_random_winds_enable,
+            { "Random Winds Enable", "cigi.weather_control.random_winds_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Specifies whether a random frequency and duration should be applied to the local wind effects", HFILL }
+        },
+        { &hf_cigi4_weather_control_random_lightning_enable,
+            { "Random Lightning Enable", "cigi.weather_control.random_lightning_enable",
+                FT_UINT8, BASE_DEC, NULL, 0x08,
+                "Specifies whether the weather layer exhibits random lightning effects", HFILL }
+        },
+        { &hf_cigi4_weather_control_cloud_type,
+            { "Cloud Type", "cigi.weather_control.cloud_type",
+                FT_UINT8, BASE_DEC, VALS(cigi3_weather_control_cloud_type_vals), 0xf0,
+                "Specifies the type of clouds contained within the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_scope,
+            { "Scope", "cigi.weather_control.scope",
+                FT_UINT8, BASE_DEC, VALS(cigi3_weather_control_scope_vals), 0x03,
+                "Specifies whether the weather is global, regional, or assigned to an entity", HFILL }
+        },
+        { &hf_cigi4_weather_control_severity,
+            { "Severity", "cigi.weather_control.severity",
+                FT_UINT8, BASE_DEC, NULL, 0x1c,
+                "Specifies the severity of the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_top_scud_enable,
+            { "Top Scud Enable", "cigi.weather_control.top_scud_enable",
+                FT_UINT8, BASE_DEC, NULL, 0x20,
+                "Specifies whether the weather layer produces scud effects", HFILL }
+        },
+        { &hf_cigi4_weather_control_air_temp,
+            { "Air Temperature (degrees C)", "cigi.weather_control.air_temp",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the temperature within the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_visibility_range,
+            { "Visibility Range (m)", "cigi.weather_control.visibility_range",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the visibility range through the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_scud_frequency,
+            { "Scud Frequency (%)", "cigi.weather_control.scud_frequency",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the frequency of scud within the transition bands above and/or below a cloud or fog layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_coverage,
+            { "Coverage (%)", "cigi.weather_control.coverage",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the amount of area coverage for the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_base_elevation,
+            { "Base Elevation (m)", "cigi.weather_control.base_elevation",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the altitude of the base of the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_thickness,
+            { "Thickness (m)", "cigi.weather_control.thickness",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the vertical thickness of the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_transition_band,
+            { "Transition Band (m)", "cigi.weather_control.transition_band",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the height of a vertical transition band both above and below the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_horiz_wind,
+            { "Horizontal Wind Speed (m/s)", "cigi.weather_control.horiz_wind",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the local wind speed parallel to the ellipsoid-tangential reference plane", HFILL }
+        },
+        { &hf_cigi4_weather_control_vert_wind,
+            { "Vertical Wind Speed (m/s)", "cigi.weather_control.vert_wind",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the local vertical wind speed", HFILL }
+        },
+        { &hf_cigi4_weather_control_wind_direction,
+            { "Wind Direction (degrees)", "cigi.weather_control.wind_direction",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the local wind direction", HFILL }
+        },
+        { &hf_cigi4_weather_control_barometric_pressure,
+            { "Barometric Pressure (mb or hPa)", "cigi.weather_control.barometric_pressure",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the atmospheric pressure within the weather layer", HFILL }
+        },
+        { &hf_cigi4_weather_control_aerosol_concentration,
+            { "Aerosol Concentration (g/m^3)", "cigi.weather_control.aerosol_concentration",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the concentration of water, smoke, dust, or other particles suspended in the air", HFILL }
+        },
+
+        { &hf_cigi4_weather_control_top_scud_freq,
+            { "Top Scud Frequency (%)", "cigi.weather_control.top_scud_frequency",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the frequency of scud within the transition band above a cloud or fog layer", HFILL }
+        },
+
+        { &hf_cigi4_weather_control_top_transition_band,
+            { "Top Transition Band Thickness (m)", "cigi.weather_control.top_transition_band",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the height of a vertical transition band above the weather layer", HFILL }
         },
 
         /* CIGI3 Maritime Surface Conditions Control */
