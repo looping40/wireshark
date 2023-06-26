@@ -148,8 +148,8 @@ static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_trajectory_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_view_definition(tvbuff_t*, proto_tree*, gint);
@@ -1871,6 +1871,26 @@ static const true_false_string cigi3_motion_tracker_control_view_group_select_tf
     "View"
 };
 
+/* CIGI4 Motion Tracker Control */
+#define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL 16
+static int hf_cigi4_motion_tracker_control = -1;
+static int hf_cigi4_motion_tracker_control_view_group_id = -1;
+static int hf_cigi4_motion_tracker_control_tracker_id = -1;
+static int hf_cigi4_motion_tracker_control_tracker_enable = -1;
+static int hf_cigi4_motion_tracker_control_boresight_enable = -1;
+static int hf_cigi4_motion_tracker_control_x_enable = -1;
+static int hf_cigi4_motion_tracker_control_y_enable = -1;
+static int hf_cigi4_motion_tracker_control_z_enable = -1;
+static int hf_cigi4_motion_tracker_control_roll_enable = -1;
+static int hf_cigi4_motion_tracker_control_pitch_enable = -1;
+static int hf_cigi4_motion_tracker_control_yaw_enable = -1;
+static int hf_cigi4_motion_tracker_control_view_group_select = -1;
+
+static const true_false_string cigi4_motion_tracker_control_view_group_select_tfs = {
+    "View Group",
+    "View"
+};
+
 /* CIGI3 Earth Reference Model Definition */
 #define CIGI3_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION 24
 static int hf_cigi3_earth_reference_model_definition = -1;
@@ -2953,7 +2973,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
 #define CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION          24
 #define CIGI4_PACKET_SIZE_ACCELERATION_CONTROL                      32
 #define CIGI4_PACKET_SIZE_VIEW_DEFINITION                           40
@@ -6231,6 +6250,32 @@ cigi3_add_motion_tracker_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 Motion Tracker Control */
+static gint
+cigi4_add_motion_tracker_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_tracker_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_tracker_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_boresight_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_x_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_y_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_z_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_roll_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_pitch_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_yaw_enable, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_view_group_select, tvb, offset, 1, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_motion_tracker_control_view_group_id, tvb, offset, 2, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 Earth Reference Model Definition */
 static gint
 cigi3_add_earth_reference_model_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7803,10 +7848,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             hf_cigi4_packet = hf_cigi4_sensor_control;
             packet_length = CIGI4_PACKET_SIZE_SENSOR_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_motion_tracker_control;
             packet_length = CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_earth_reference_model_definition;
             packet_length = CIGI4_PACKET_SIZE_EARTH_REFERENCE_MODEL_DEFINITION;
         } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
@@ -7960,9 +8005,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
         } else if (packet_id == CIGI4_PACKET_ID_SENSOR_CONTROL) {
             offset = cigi4_add_sensor_control(tvb, cigi_packet_tree, offset);
-        }/* else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_MOTION_TRACKER_CONTROL ) {
             offset = cigi4_add_motion_tracker_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
+        }/* else if ( packet_id == CIGI4_PACKET_ID_EARTH_REFERENCE_MODEL_DEFINITION ) {
             offset = cigi4_add_earth_reference_model_definition(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_TRAJECTORY_DEFINITION ) {
             offset = cigi4_add_trajectory_definition(tvb, cigi_packet_tree, offset);
@@ -11396,7 +11441,7 @@ proto_register_cigi(void)
                 "Specifies the amount of detector noise for the sensor", HFILL }
         },
 
-        /* Motion Tracker Control */
+        /* CIGI3 Motion Tracker Control */
         { &hf_cigi3_motion_tracker_control,
             { "Motion Tracker Control", "cigi.motion_tracker_control",
                 FT_NONE, BASE_NONE, NULL, 0x0,
@@ -11453,6 +11498,68 @@ proto_register_cigi(void)
                 "Used to enable or disable the yaw of the motion tracker", HFILL }
         },
         { &hf_cigi3_motion_tracker_control_view_group_select,
+            { "View/View Group Select", "cigi.motion_tracker_control.view_group_select",
+                FT_BOOLEAN, 8, TFS(&cigi3_motion_tracker_control_view_group_select_tfs), 0x01,
+                "Specifies whether the tracking device is attached to a single view or a view group", HFILL }
+        },
+
+        /* CIGI4 Motion Tracker Control */
+        { &hf_cigi4_motion_tracker_control,
+            { "Motion Tracker Control", "cigi.motion_tracker_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Motion Tracker Control Packet", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_view_group_id,
+            { "View/View Group ID", "cigi.motion_tracker_control.view_group_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the view or view group to which the tracking device is attached", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_tracker_id,
+            { "Tracker ID", "cigi.motion_tracker_control.tracker_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the tracker whose state the data in this packet represents", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_tracker_enable,
+            { "Tracker Enable", "cigi.motion_tracker_control.tracker_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether the tracking device is enabled", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_boresight_enable,
+            { "Boresight Enable", "cigi.motion_tracker_control.boresight_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Sets the boresight state of the external tracking device", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_x_enable,
+            { "X Enable", "cigi.motion_tracker_control.x_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Used to enable or disable the X-axis position of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_y_enable,
+            { "Y Enable", "cigi.motion_tracker_control.y_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Used to enable or disable the Y-axis position of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_z_enable,
+            { "Z Enable", "cigi.motion_tracker_control.z_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x10,
+                "Used to enable or disable the Z-axis position of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_roll_enable,
+            { "Roll Enable", "cigi.motion_tracker_control.roll_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x20,
+                "Used to enable or disable the roll of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_pitch_enable,
+            { "Pitch Enable", "cigi.motion_tracker_control.pitch_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x40,
+                "Used to enable or disable the pitch of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_yaw_enable,
+            { "Yaw Enable", "cigi.motion_tracker_control.yaw_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x80,
+                "Used to enable or disable the yaw of the motion tracker", HFILL }
+        },
+        { &hf_cigi4_motion_tracker_control_view_group_select,
             { "View/View Group Select", "cigi.motion_tracker_control.view_group_select",
                 FT_BOOLEAN, 8, TFS(&cigi3_motion_tracker_control_view_group_select_tfs), 0x01,
                 "Specifies whether the tracking device is attached to a single view or a view group", HFILL }
