@@ -142,9 +142,9 @@ static gint cigi4_add_short_articulated_part_control(tvbuff_t*, proto_tree*, gin
 static gint cigi4_add_velocity_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_celestial_sphere_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_atmosphere_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);/*
+static gint cigi4_add_environmental_region_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_weather_control(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_maritime_surface_conditions_control(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_wave_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_terrestrial_surface_conditions_control(tvbuff_t*, proto_tree*, gint);*/
 static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);/*
@@ -1613,6 +1613,28 @@ static const value_string cigi3_maritime_surface_conditions_control_scope_vals[]
     {0, NULL},
 };
 
+
+
+/* CIGI4 Maritime Surface Conditions Control */
+#define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL 24
+static int hf_cigi4_maritime_surface_conditions_control = -1;
+static int hf_cigi4_maritime_surface_conditions_control_wave_id = -1;
+static int hf_cigi4_maritime_surface_conditions_control_entity_region_id = -1;
+static int hf_cigi4_maritime_surface_conditions_control_surface_conditions_enable = -1;
+static int hf_cigi4_maritime_surface_conditions_control_whitecap_enable = -1;
+static int hf_cigi4_maritime_surface_conditions_control_scope = -1;
+static int hf_cigi4_maritime_surface_conditions_control_sea_surface_height = -1;
+static int hf_cigi4_maritime_surface_conditions_control_surface_water_temp = -1;
+static int hf_cigi4_maritime_surface_conditions_control_surface_clarity = -1;
+
+static const value_string cigi4_maritime_surface_conditions_control_scope_vals[] = {
+    {0, "Global"},
+    {1, "Regional"},
+    {2, "Entity"},
+    {0, NULL},
+};
+
+
 /* CIGI3 Wave Control */
 #define CIGI3_PACKET_SIZE_WAVE_CONTROL 32
 static int hf_cigi3_wave_control = -1;
@@ -1636,6 +1658,35 @@ static const value_string cigi3_wave_control_scope_vals[] = {
 };
 
 static const value_string cigi3_wave_control_breaker_type_vals[] = {
+    {0, "Plunging"},
+    {1, "Spilling"},
+    {2, "Surging"},
+    {0, NULL},
+};
+
+/* CIGI4 Wave Control */
+#define CIGI3_PACKET_SIZE_WAVE_CONTROL 32
+static int hf_cigi4_wave_control = -1;
+static int hf_cigi4_wave_control_entity_region_id = -1;
+static int hf_cigi4_wave_control_wave_id = -1;
+static int hf_cigi4_wave_control_wave_enable = -1;
+static int hf_cigi4_wave_control_scope = -1;
+static int hf_cigi4_wave_control_breaker_type = -1;
+static int hf_cigi4_wave_control_height = -1;
+static int hf_cigi4_wave_control_wavelength = -1;
+static int hf_cigi4_wave_control_period = -1;
+static int hf_cigi4_wave_control_direction = -1;
+static int hf_cigi4_wave_control_phase_offset = -1;
+static int hf_cigi4_wave_control_leading = -1;
+
+static const value_string cigi4_wave_control_scope_vals[] = {
+    {0, "Global"},
+    {1, "Regional"},
+    {2, "Entity"},
+    {0, NULL},
+};
+
+static const value_string cigi4_wave_control_breaker_type_vals[] = {
     {0, "Plunging"},
     {1, "Spilling"},
     {2, "Surging"},
@@ -2843,8 +2894,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL       24
-#define CIGI4_PACKET_SIZE_WAVE_CONTROL                              32
 #define CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL    16
 #define CIGI4_PACKET_SIZE_SENSOR_CONTROL                            32
 #define CIGI4_PACKET_SIZE_MOTION_TRACKER_CONTROL                    16
@@ -5792,6 +5841,33 @@ cigi3_add_maritime_surface_conditions_control(tvbuff_t *tvb, proto_tree *tree, g
     return offset;
 }
 
+/* CIGI4 Maritime Surface Conditions Control */
+static gint
+cigi4_add_maritime_surface_conditions_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_wave_id, tvb, offset, 1, cigi_byte_order);
+    offset ++;
+
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_surface_conditions_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_whitecap_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_scope, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_entity_region_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_sea_surface_height, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_surface_water_temp, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_maritime_surface_conditions_control_surface_clarity, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 Wave Control */
 static gint
 cigi3_add_wave_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -5823,6 +5899,42 @@ cigi3_add_wave_control(tvbuff_t *tvb, proto_tree *tree, gint offset)
     offset += 4;
 
     proto_tree_add_item(tree, hf_cigi3_wave_control_leading, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    return offset;
+}
+
+/* CIGI4 Wave Control */
+static gint
+cigi4_add_wave_control(tvbuff_t* tvb, proto_tree* tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_wave_control_wave_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_wave_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_wave_control_scope, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_wave_control_breaker_type, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_entity_region_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+    
+    proto_tree_add_item(tree, hf_cigi4_wave_control_height, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_wavelength, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_period, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_direction, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_phase_offset, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_wave_control_leading, tvb, offset, 4, cigi_byte_order);
     offset += 4;
 
     return offset;
@@ -7562,13 +7674,13 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_weather_control;
             packet_length = CIGI4_PACKET_SIZE_WEATHER_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_maritime_surface_conditions_control;
             packet_length = CIGI4_PACKET_SIZE_MARITIME_SURFACE_CONDITIONS_CONTROL;
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_wave_control;
             packet_length = CIGI4_PACKET_SIZE_WAVE_CONTROL;
-        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_terrestrial_surface_conditions_control;
             packet_length = CIGI4_PACKET_SIZE_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL;
         } */else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
@@ -7724,11 +7836,11 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_environmental_region_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_WEATHER_CONTROL ) {
             offset = cigi4_add_weather_control(tvb, cigi_packet_tree, offset);
-        } /*else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_MARITIME_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_maritime_surface_conditions_control(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_WAVE_CONTROL ) {
             offset = cigi4_add_wave_control(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_TERRESTRIAL_SURFACE_CONDITIONS_CONTROL ) {
             offset = cigi4_add_terrestrial_surface_conditions_control(tvb, cigi_packet_tree, offset);
         }*/ else if ( packet_id == CIGI4_PACKET_ID_VIEW_CONTROL ) {
             offset = cigi4_add_view_control(tvb, cigi_packet_tree, offset);
@@ -10400,13 +10512,11 @@ proto_register_cigi(void)
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the concentration of water, smoke, dust, or other particles suspended in the air", HFILL }
         },
-
         { &hf_cigi4_weather_control_top_scud_freq,
             { "Top Scud Frequency (%)", "cigi.weather_control.top_scud_frequency",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the frequency of scud within the transition band above a cloud or fog layer", HFILL }
         },
-
         { &hf_cigi4_weather_control_top_transition_band,
             { "Top Transition Band Thickness (m)", "cigi.weather_control.top_transition_band",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
@@ -10450,6 +10560,54 @@ proto_register_cigi(void)
                 "Specifies the water temperature at the surface", HFILL }
         },
         { &hf_cigi3_maritime_surface_conditions_control_surface_clarity,
+            { "Surface Clarity (%)", "cigi.maritime_surface_conditions_control.surface_clarity",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the clarity of the water at its surface", HFILL }
+        },
+
+
+        /* CIGI4 Maritime Surface Conditions Control */
+        { &hf_cigi4_maritime_surface_conditions_control,
+            { "Maritime Surface Conditions Control", "cigi.maritime_surface_conditions_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Maritime Surface Conditions Control Packet", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_wave_id,
+            { "Maritime Surface Conditions Wave ID", "cigi.maritime_surface_conditions_wave_id",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Specifies the wave to which the attributes in this packet are applied", HFILL }
+        },            
+        { &hf_cigi4_maritime_surface_conditions_control_entity_region_id,
+            { "Entity ID/Region ID", "cigi.maritime_surface_conditions_control.entity_region_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the entity to which the surface attributes in this packet are applied or specifies the region to which the surface attributes are confined", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_surface_conditions_enable,
+            { "Surface Conditions Enable", "cigi.maritime_surface_conditions_control.surface_conditions_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Determines the state of the specified surface conditions", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_whitecap_enable,
+            { "Whitecap Enable", "cigi.maritime_surface_conditions_control.whitecap_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Determines whether whitecaps are enabled", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_scope,
+            { "Scope", "cigi.maritime_surface_conditions_control.scope",
+                FT_UINT8, BASE_DEC, VALS(cigi3_maritime_surface_conditions_control_scope_vals), 0x0c,
+                "Specifies whether this packet is applied globally, applied to region, or assigned to an entity", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_sea_surface_height,
+            { "Sea Surface Height (m)", "cigi.maritime_surface_conditions_control.sea_surface_height",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the height of the water above MSL at equilibrium", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_surface_water_temp,
+            { "Surface Water Temperature (degrees C)", "cigi.maritime_surface_conditions_control.surface_water_temp",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the water temperature at the surface", HFILL }
+        },
+        { &hf_cigi4_maritime_surface_conditions_control_surface_clarity,
             { "Surface Clarity (%)", "cigi.maritime_surface_conditions_control.surface_clarity",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the clarity of the water at its surface", HFILL }
@@ -10512,6 +10670,68 @@ proto_register_cigi(void)
                 "Specifies a phase offset for the wave", HFILL }
         },
         { &hf_cigi3_wave_control_leading,
+            { "Leading (degrees)", "cigi.wave_control.leading",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the phase angle at which the crest occurs", HFILL }
+        },
+
+        /* CIGI4 Wave Control */
+        { &hf_cigi4_wave_control,
+            { "Wave Control", "cigi.wave_control",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "Wave Control Packet", HFILL }
+        },
+        { &hf_cigi4_wave_control_entity_region_id,
+            { "Entity ID/Region ID", "cigi.wave_control.entity_region_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the surface entity for which the wave is defined or specifies the environmental region for which the wave is defined", HFILL }
+        },
+        { &hf_cigi4_wave_control_wave_id,
+            { "Wave ID", "cigi.wave_control.wave_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the wave to which the attributes in this packet are applied", HFILL }
+        },
+        { &hf_cigi4_wave_control_wave_enable,
+            { "Wave Enable", "cigi.wave_control.wave_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Determines whether the wave is enabled or disabled", HFILL }
+        },
+        { &hf_cigi4_wave_control_scope,
+            { "Scope", "cigi.wave_control.scope",
+                FT_UINT8, BASE_DEC, VALS(cigi4_wave_control_scope_vals), 0x06,
+                "Specifies whether the wave is defined for global, regional, or entity-controlled maritime surface conditions", HFILL }
+        },
+        { &hf_cigi4_wave_control_breaker_type,
+            { "Breaker Type", "cigi.wave_control.breaker_type",
+                FT_UINT8, BASE_DEC, VALS(cigi4_wave_control_breaker_type_vals), 0x18,
+                "Specifies the type of breaker within the surf zone", HFILL }
+        },
+        { &hf_cigi4_wave_control_height,
+            { "Wave Height (m)", "cigi.wave_control.height",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the average vertical distance from trough to crest produced by the wave", HFILL }
+        },
+        { &hf_cigi4_wave_control_wavelength,
+            { "Wavelength (m)", "cigi.wave_control.wavelength",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the distance from a particular phase on a wave to the same phase on an adjacent wave", HFILL }
+        },
+        { &hf_cigi4_wave_control_period,
+            { "Period (s)", "cigi.wave_control.period",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the time required for one complete oscillation of the wave", HFILL }
+        },
+        { &hf_cigi4_wave_control_direction,
+            { "Direction (degrees)", "cigi.wave_control.direction",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the direction in which the wave propagates", HFILL }
+        },
+        { &hf_cigi4_wave_control_phase_offset,
+            { "Phase Offset (degrees)", "cigi.wave_control.phase_offset",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies a phase offset for the wave", HFILL }
+        },
+        { &hf_cigi4_wave_control_leading,
             { "Leading (degrees)", "cigi.wave_control.leading",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the phase angle at which the crest occurs", HFILL }
