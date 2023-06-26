@@ -151,8 +151,8 @@ static gint cigi4_add_view_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_sensor_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_motion_tracker_control(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_earth_reference_model_definition(tvbuff_t*, proto_tree*, gint);
-static gint cigi4_add_acceleration_control(tvbuff_t*, proto_tree*, gint);/*
-static gint cigi4_add_view_definition(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_acceleration_control(tvbuff_t*, proto_tree*, gint);
+static gint cigi4_add_view_definition(tvbuff_t*, proto_tree*, gint);/*
 static gint cigi4_add_collision_detection_segment_definition(tvbuff_t*, proto_tree*, gint);
 static gint cigi4_add_collision_detection_volume_definition(tvbuff_t*, proto_tree*, gint);*/
 static gint cigi4_add_hat_hot_request(tvbuff_t*, proto_tree*, gint);/*
@@ -1988,6 +1988,59 @@ static const true_false_string cigi3_view_definition_reorder_tfs = {
     "No Reorder"
 };
 
+/* CIGI4 View Definition */
+#define CIGI4_PACKET_SIZE_VIEW_DEFINITION 40
+static int hf_cigi4_view_definition = -1;
+static int hf_cigi4_view_definition_view_id = -1;
+static int hf_cigi4_view_definition_group_id = -1;
+static int hf_cigi4_view_definition_near_enable = -1;
+static int hf_cigi4_view_definition_far_enable = -1;
+static int hf_cigi4_view_definition_left_enable = -1;
+static int hf_cigi4_view_definition_right_enable = -1;
+static int hf_cigi4_view_definition_top_enable = -1;
+static int hf_cigi4_view_definition_bottom_enable = -1;
+static int hf_cigi4_view_definition_mirror_mode = -1;
+static int hf_cigi4_view_definition_pixel_replication = -1;
+static int hf_cigi4_view_definition_projection_type = -1;
+static int hf_cigi4_view_definition_reorder = -1;
+static int hf_cigi4_view_definition_view_type = -1;
+static int hf_cigi4_view_definition_near = -1;
+static int hf_cigi4_view_definition_far = -1;
+static int hf_cigi4_view_definition_left = -1;
+static int hf_cigi4_view_definition_right = -1;
+static int hf_cigi4_view_definition_top = -1;
+static int hf_cigi4_view_definition_bottom = -1;
+
+static const value_string cigi4_view_definition_mirror_mode_vals[] = {
+    {0, "None"},
+    {1, "Horizontal"},
+    {2, "Vertical"},
+    {3, "Horizontal and Vertical"},
+    {0, NULL},
+};
+
+static const value_string cigi4_view_definition_pixel_replication_vals[] = {
+    {0, "None"},
+    {1, "1x2"},
+    {2, "2x1"},
+    {3, "2x2"},
+    {4, "Defined by IG"},
+    {5, "Defined by IG"},
+    {6, "Defined by IG"},
+    {7, "Defined by IG"},
+    {0, NULL},
+};
+
+static const true_false_string cigi4_view_definition_projection_type_tfs = {
+    "Orthographic Parallel",
+    "Perspective"
+};
+
+static const true_false_string cigi4_view_definition_reorder_tfs = {
+    "Bring to Top",
+    "No Reorder"
+};
+
 /* CIGI3 Collision Detection Segment Definition */
 #define CIGI3_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION 40
 static int hf_cigi3_collision_detection_segment_definition = -1;
@@ -3000,7 +3053,6 @@ static const value_string cigi4_hat_hot_request_type_vals[] = {
 };
 
 
-#define CIGI4_PACKET_SIZE_VIEW_DEFINITION                           40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION    40
 #define CIGI4_PACKET_SIZE_COLLISION_DETECTION_VOLUME_DEFINITION     48
 #define CIGI4_PACKET_SIZE_LINE_OF_SIGHT_SEGMENT_REQUEST             72
@@ -6440,6 +6492,52 @@ cigi3_add_view_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
     return offset;
 }
 
+/* CIGI4 View Definition */
+static gint
+cigi4_add_view_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
+{
+    proto_tree_add_item(tree, hf_cigi4_view_definition_view_id, tvb, offset, 2, cigi_byte_order);
+    offset += 2;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_group_id, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_near_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_far_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_left_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_right_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_top_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_bottom_enable, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_mirror_mode, tvb, offset, 1, cigi_byte_order);
+    offset++;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_pixel_replication, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_projection_type, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_reorder, tvb, offset, 1, cigi_byte_order);
+    proto_tree_add_item(tree, hf_cigi4_view_definition_view_type, tvb, offset, 1, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_near, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_far, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_left, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_right, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_top, tvb, offset, 4, cigi_byte_order);
+    offset += 4;
+
+    proto_tree_add_item(tree, hf_cigi4_view_definition_bottom, tvb, offset, 4, cigi_byte_order);
+    offset += 8;
+
+    return offset;
+}
+
 /* CIGI3 Collision Detection Segment Definition */
 static gint
 cigi3_add_collision_detection_segment_definition(tvbuff_t *tvb, proto_tree *tree, gint offset)
@@ -7934,10 +8032,10 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
         } else if ( packet_id == CIGI4_PACKET_ID_ACCELERATION_CONTROL ) {
             hf_cigi4_packet = hf_cigi4_acceleration_control;
             packet_length = CIGI4_PACKET_SIZE_ACCELERATION_CONTROL;
-        } /*else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_view_definition;
             packet_length = CIGI4_PACKET_SIZE_VIEW_DEFINITION;
-        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
+        } /*else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
             hf_cigi4_packet = hf_cigi4_collision_detection_segment_definition;
             packet_length = CIGI4_PACKET_SIZE_COLLISION_DETECTION_SEGMENT_DEFINITION;
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
@@ -8088,9 +8186,9 @@ cigi4_add_tree(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cigi_tree)
             offset = cigi4_add_earth_reference_model_definition(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_ACCELERATION_CONTROL ) {
             offset = cigi4_add_acceleration_control(tvb, cigi_packet_tree, offset);
-        }/* else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
+        } else if ( packet_id == CIGI4_PACKET_ID_VIEW_DEFINITION ) {
             offset = cigi4_add_view_definition(tvb, cigi_packet_tree, offset);
-        } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
+        }/* else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_SEGMENT_DEFINITION ) {
             offset = cigi4_add_collision_detection_segment_definition(tvb, cigi_packet_tree, offset);
         } else if ( packet_id == CIGI4_PACKET_ID_COLLISION_DETECTION_VOLUME_DEFINITION ) {
             offset = cigi4_add_collision_detection_volume_definition(tvb, cigi_packet_tree, offset);
@@ -12086,6 +12184,109 @@ proto_register_cigi(void)
                 "Specifies the top half-angle of the view frustum", HFILL }
         },
         { &hf_cigi3_view_definition_bottom,
+            { "Bottom (degrees)", "cigi.view_def.bottom",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the bottom half-angle of the view frustum", HFILL }
+        },
+
+
+        /* CIGI4 View Definition */
+        { &hf_cigi4_view_definition,
+            { "View Definition", "cigi.view_def",
+                FT_NONE, BASE_NONE, NULL, 0x0,
+                "View Definition Packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_view_id,
+            { "View ID", "cigi.view_def.view_id",
+                FT_UINT16, BASE_DEC, NULL, 0x0,
+                "Specifies the view to which the data in this packet will be applied", HFILL }
+        },
+        { &hf_cigi4_view_definition_group_id,
+            { "Group ID", "cigi.view_def.group_id",
+                FT_UINT8, BASE_DEC, NULL, 0x0,
+                "Specifies the group to which the view is to be assigned", HFILL }
+        },
+        { &hf_cigi4_view_definition_near_enable,
+            { "Near Enable", "cigi.view_def.near_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x01,
+                "Specifies whether the near clipping plane will be set to the value of the Near parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_far_enable,
+            { "Far Enable", "cigi.view_def.far_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x02,
+                "Specifies whether the far clipping plane will be set to the value of the Far parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_left_enable,
+            { "Left Enable", "cigi.view_def.left_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x04,
+                "Specifies whether the left half-angle of the view frustum will be set according to the value of the Left parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_right_enable,
+            { "Right Enable", "cigi.view_def.right_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x08,
+                "Specifies whether the right half-angle of the view frustum will be set according to the value of the Right parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_top_enable,
+            { "Top Enable", "cigi.view_def.top_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x10,
+                "Specifies whether the top half-angle of the view frustum will be set according to the value of the Top parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_bottom_enable,
+            { "Bottom Enable", "cigi.view_def.bottom_enable",
+                FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), 0x20,
+                "Specifies whether the bottom half-angle of the view frustum will be set according to the value of the Bottom parameter within this packet", HFILL }
+        },
+        { &hf_cigi4_view_definition_mirror_mode,
+            { "Mirror Mode", "cigi.view_def.mirror_mode",
+                FT_UINT8, BASE_DEC, VALS(cigi3_view_definition_mirror_mode_vals), 0xc0,
+                "Specifies the mirroring function to be performed on the view", HFILL }
+        },
+        { &hf_cigi4_view_definition_pixel_replication,
+            { "Pixel Replication Mode", "cigi.view_def.pixel_replication",
+                FT_UINT8, BASE_DEC, VALS(cigi3_view_definition_pixel_replication_vals), 0x07,
+                "Specifies the pixel replication function to be performed on the view", HFILL }
+        },
+        { &hf_cigi4_view_definition_projection_type,
+            { "Projection Type", "cigi.view_def.projection_type",
+                FT_BOOLEAN, 8, TFS(&cigi3_view_definition_projection_type_tfs), 0x08,
+                "Specifies whether the view projection should be perspective or orthographic parallel", HFILL }
+        },
+        { &hf_cigi4_view_definition_reorder,
+            { "Reorder", "cigi.view_def.reorder",
+                FT_BOOLEAN, 8, TFS(&cigi3_view_definition_reorder_tfs), 0x10,
+                "Specifies whether the view should be moved to the top of any overlapping views", HFILL }
+        },
+        { &hf_cigi4_view_definition_view_type,
+            { "View Type", "cigi.view_def.view_type",
+                FT_UINT8, BASE_DEC, NULL, 0xe0,
+                "Specifies an IG-defined type for the indicated view", HFILL }
+        },
+        { &hf_cigi4_view_definition_near,
+            { "Near (m)", "cigi.view_def.near",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the position of the view's near clipping plane", HFILL }
+        },
+        { &hf_cigi4_view_definition_far,
+            { "Far (m)", "cigi.view_def.far",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the position of the view's far clipping plane", HFILL }
+        },
+        { &hf_cigi4_view_definition_left,
+            { "Left (degrees)", "cigi.view_def.left",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the left half-angle of the view frustum", HFILL }
+        },
+        { &hf_cigi4_view_definition_right,
+            { "Right (degrees)", "cigi.view_def.right",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the right half-angle of the view frustum", HFILL }
+        },
+        { &hf_cigi4_view_definition_top,
+            { "Top (degrees)", "cigi.view_def.top",
+                FT_FLOAT, BASE_NONE, NULL, 0x0,
+                "Specifies the top half-angle of the view frustum", HFILL }
+        },
+        { &hf_cigi4_view_definition_bottom,
             { "Bottom (degrees)", "cigi.view_def.bottom",
                 FT_FLOAT, BASE_NONE, NULL, 0x0,
                 "Specifies the bottom half-angle of the view frustum", HFILL }
